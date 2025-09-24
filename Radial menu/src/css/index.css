@@ -1,0 +1,50 @@
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background: #fdfcef;
+}
+
+.main-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #ff5722;
+  border: none;
+  cursor: pointer;
+  color: white;
+  font-size: 24px;
+  position: relative;
+  z-index: 2;
+}
+
+.menu-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #03a9f4;
+  border: none;
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  transform: scale(0);
+  transition: transform 0.3s, top 0.3s, left 0.3s;
+  cursor: pointer;
+}
+
+.radial-menu {
+  position: fixed;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 60px;
+  z-index: 1000;
+}
+
+.menu-btn.show {
+  transform: scale(1);
+}
