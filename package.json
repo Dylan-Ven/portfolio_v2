@@ -1,0 +1,23 @@
+{
+  "name": "portfolio_v2",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build",
+    "dev": "vite",
+    "dev_host": "vite --host",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "gsap": "^3.13.0",
+    "scrollmagic": "^2.0.8"
+  },
+  "devDependencies": {
+    "vite": "^6.3.6"
+  }
+}
