@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { RadialMenu } from './components/RadialMenu/RadialMenu.tsx';
 import { ThemeProvider } from './context/ThemeProvider.tsx'; 
 import Home from './sections/Home.tsx';
