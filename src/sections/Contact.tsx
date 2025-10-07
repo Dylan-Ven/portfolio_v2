@@ -1,12 +1,13 @@
 
 import '../styles/components/Contact.css';
+import '../styles/components/Section.css';
 
 export default function Contact() {
   
 
   return (
-    <section className="contact-section" tabIndex={-1}>
-      <div className="contact-container">
+    <section className="contact-section section-root" tabIndex={-1}>
+      <div className="contact-container section-container">
         <h1><span data-focus-target>Contact</span> Me</h1>
         <h2>Fullstack Developer & Designer</h2>
 

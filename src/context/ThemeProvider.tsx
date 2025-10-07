@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { ThemeContext } from "./ThemeContext";
 import type { Theme } from "./ThemeContext";
-// Background animation components
-import Dither from "../components/Dither/Dither";
-import FaultyTerminal from "../components/Faulty_Terminal/FaultyTerminal";
+// Background animation components (lazy-loaded to improve initial load)
+const LazyDither = lazy(() => import("../components/Dither/Dither"));
+const LazyFaultyTerminal = lazy(() => import("../components/Faulty_Terminal/FaultyTerminal"));
 import "../styles/components/ThemeSwitcher.css";
 
 interface ThemeProviderProps {
@@ -22,6 +22,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   };
 
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [showBackgrounds, setShowBackgrounds] = useState(false);
 
   // Optional helper for cycling through themes (if you ever want a button toggle)
   const toggleTheme = () => {
@@ -59,6 +60,29 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     console.debug('[ThemeProvider] set theme', theme, { bgColor, htmlClasses: Array.from(htmlEl.classList) });
   }, [theme]);
 
+  // Defer mounting of heavy background components until browser is idle
+  useEffect(() => {
+    let idleId: number | null = null;
+    if ('requestIdleCallback' in window) {
+      // @ts-ignore
+      idleId = (window as any).requestIdleCallback(() => setShowBackgrounds(true));
+    } else {
+      // fallback
+      const t = setTimeout(() => setShowBackgrounds(true), 500);
+      idleId = Number(t);
+    }
+    return () => {
+      if (idleId != null) {
+        if ('cancelIdleCallback' in window) {
+          // @ts-ignore
+          (window as any).cancelIdleCallback(idleId);
+        } else {
+          clearTimeout(idleId as unknown as number);
+        }
+      }
+    };
+  }, []);
+
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       <div
@@ -77,8 +101,42 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
             pointerEvents: "none",
           }}
         >
-          {theme === "dark" && <Dither />}
-          {theme === "retro" && <FaultyTerminal dither={1} />}
+          {showBackgrounds && (
+            <Suspense fallback={<></>}>
+              {theme === "dark" && (
+                <LazyDither
+                  waveColor={[0.5, 0.5, 0.5]}
+                  disableAnimation={false}
+                  enableMouseInteraction={false}
+                  colorNum={4}
+                  waveAmplitude={0.3}
+                  waveFrequency={3}
+                  waveSpeed={0.05}
+                />
+              )}
+
+              {theme === "retro" && (
+                <LazyFaultyTerminal
+                  scale={1.5}
+                  gridMul={[2, 1]}
+                  digitSize={1.2}
+                  timeScale={1}
+                  pause={false}
+                  scanlineIntensity={1}
+                  glitchAmount={1}
+                  flickerAmount={1}
+                  noiseAmp={1}
+                  chromaticAberration={1}
+                  dither={1}
+                  curvature={0.3}
+                  tint="#a7ef9e"
+                  mouseReact={false}
+                  pageLoadAnimation={false}
+                  brightness={0.6}
+                />
+              )}
+            </Suspense>
+          )}
         </div>
 
         {/* Themed bubbly dropdown in the top-right */}

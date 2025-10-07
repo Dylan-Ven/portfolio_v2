@@ -2,14 +2,15 @@ import githubIcon from '../assets/icons/github.svg';
 import linkedinIcon from '../assets/icons/linkedin.svg';
 import instagramIcon from '../assets/icons/instagram.svg';
 import '../styles/components/Home.css';
+import '../styles/components/Section.css';
 import ShinyText from '../components/Shinytext/ShinyText.tsx';
 
 export default function Home() {
 
 
   return (
-    <section className="home-section" tabIndex={-1}>
-      <div className="home-container">
+    <section className="home-section section-root" tabIndex={-1}>
+      <div className="home-container section-container">
         <h1>My name is Dylan van der Ven</h1>
         <span data-focus-target className="invisible">Home</span>
 

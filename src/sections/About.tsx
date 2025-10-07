@@ -1,12 +1,13 @@
 
 import '../styles/components/About.css'; // Optional
+import '../styles/components/Section.css';
 
 export default function About() {
 
-  
+
   return (
-    <section className="about-section" tabIndex={-1}>
-      <div className="about-container">
+    <section className="about-section section-root" tabIndex={-1}>
+      <div className="about-container section-container">
         <h1><span data-focus-target>About</span> Me</h1>
         <h2>Fullstack Developer & Designer</h2>
 
