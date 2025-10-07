@@ -1,0 +1,94 @@
+/* Bubbly theme switcher placed top-right with spacing from viewport edges */
+.theme-switcher-dropdown {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1100;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 14px;
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.28);
+  transition: background-color 200ms ease, transform 150ms ease;
+}
+
+/* Light-ish background for dark theme (the actual page bg is handled separately) */
+.theme-switcher-dropdown.theme-dark {
+  background: #000000; /* solid black */
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+/* Slight greenish tint for retro */
+.theme-switcher-dropdown.theme-retro {
+  background: #000000; /* keep dropdown black for readability */
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+.theme-switcher-label {
+  font-size: 0.9rem;
+  color: var(--color-foreground, #fff);
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.15);
+}
+
+.theme-switcher-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: none;
+  padding: 8px 32px 8px 12px;
+  font-size: 0.95rem;
+  border-radius: 999px;
+  background: #000000;
+  color: var(--color-foreground, #fff);
+  cursor: pointer;
+  position: relative;
+}
+
+/* Option styling: dark background and light text */
+.theme-switcher-select option {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Lighter hover for options - note: many browsers render native option lists out-of-DOM
+   and won't respect these styles. They will work in some browsers (Chromium-based).
+*/
+.theme-switcher-select option:hover,
+.theme-switcher-select option:checked,
+.theme-switcher-select option:active {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+/* Adjust label color in retro mode */
+.theme-switcher-dropdown.theme-retro .theme-switcher-label {
+  background: rgba(255,255,255,0.02);
+  color: #e6ffe6;
+}
+
+/* custom arrow */
+.theme-switcher-select::after {
+  content: '';
+}
+
+/* small focus style */
+.theme-switcher-select:focus {
+  outline: 2px solid rgba(100,111,255,0.6);
+  outline-offset: 2px;
+}
+
+/* spacing from viewport edges on smaller screens */
+@media (max-width: 420px) {
+  .theme-switcher-dropdown {
+    right: 12px;
+    left: 12px;
+    top: 12px;
+    justify-content: space-between;
+    border-radius: 12px;
+  }
+}

@@ -1,54 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="/src/public/style.css">
-</head>
-<body>
-    <div id="animation-container" class="container"></div>
-    <div id="click-tooltip">Click me!</div>
-    <div class="radial-menu">
-        <button class="main-btn"></button>
-
-        <button class="menu-btn home" data-angle="150">
-            <img src="src/public/assets/icons/home-svgrepo-com.svg" class="menu-icon-img" alt="Icon_Menu">
-        </button>
-        <button class="menu-btn about" data-angle="110">
-            <img src="src/public/assets/icons/about-filled-svgrepo-com.svg" class="menu-icon-img" alt="Icon_Menu">
-        </button>
-        <button class="menu-btn projects" data-angle="70">
-            <img src="src/public/assets/icons/project-svgrepo-com.svg" class="menu-icon-img" alt="Icon_Menu">
-        </button>
-        <button class="menu-btn contact" data-angle="30">
-            <img src="src/public/assets/icons/contact-us-filled-svgrepo-com.svg" class="menu-icon-img" alt="Icon_Menu">
-        </button>
-    </div>
-    <section id="Home" class="page active">
-        <div class="flexContainer1">
-            <h1>I'm Dylan van der Ven</h1>
-            <h2>fullstack Developer & Designer</h2>
-            <div>
-                <a href="https://github.com/Dylan-Ven"><img src="src/public/assets/icons/github-142-svgrepo-com.svg" class="icon-img" alt="Icon_Github"></a>
-                <a href="https://www.linkedin.com/in/dylan-van-der-ven-766a94240/"><img src="src/public/assets/icons/linkedin-svgrepo-com.svg" class="icon-img" alt="Icon_LinkedIn"></a>
-                <a href="https://www.instagram.com/ven.dylan/"><img src="src/public/assets/icons/instagram-svgrepo-com.svg" class="icon-img" alt="Icon_Instagram"></a>
-            </div>
-        </div>
-    </section>
-
-    <section id="About" class="page">
-        <h1>About</h1>
-    </section>
-
-    <section id="Projects" class="page">
-        <h1>Projects</h1>
-    </section>
-
-    <section id="Contact" class="page">
-        <h1>Contact</h1>
-    </section>
-    <script src="/src/menu-button.js"></script>
-    <script src="/src/background.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Portfolio</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
