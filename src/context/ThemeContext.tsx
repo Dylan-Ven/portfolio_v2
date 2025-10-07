@@ -1,3 +1,4 @@
+"use client"
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 
@@ -31,17 +32,9 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   // Sync background color with theme
-  useEffect(() => {
-    const app = document.querySelector(".App") as HTMLElement | null;
-    if (!app) return;
-
-    // Only dark and retro supported now
-    if (theme === "retro") {
-      app.style.backgroundColor = "#081b08";
-    } else {
-      app.style.backgroundColor = "#000000";
-    }
-  }, [theme]);
+  // Previously synced backgroundColor on the .App element here, but that could
+  // override canvas-based backgrounds. Intentionally left blank so canvases
+  // control the page background instead.
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>

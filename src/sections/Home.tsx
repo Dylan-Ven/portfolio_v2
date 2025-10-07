@@ -3,7 +3,7 @@ import linkedinIcon from '../assets/icons/linkedin.svg';
 import instagramIcon from '../assets/icons/instagram.svg';
 import '../styles/components/Home.css';
 import '../styles/components/Section.css';
-import ShinyText from '../components/Shinytext/ShinyText.tsx';
+import ShinyText from '../components/Shinytext/ShinyText';
 
 export default function Home() {
 
@@ -11,15 +11,17 @@ export default function Home() {
   return (
     <section className="home-section section-root" tabIndex={-1}>
       <div className="home-container section-container">
-        <h1>My name is Dylan van der Ven</h1>
-        <span data-focus-target className="invisible">Home</span>
+        <div className="Titlebar">
+          <h1>My name is Dylan van der Ven</h1>
+          <span data-focus-target className="invisible">Home</span>
 
-        <ShinyText
-          text="Student Web- & Software Development Y4 (MBO)"
-          disabled={false}
-          speed={4}
-          className="shiny-text"
-        />
+          <ShinyText
+            text="Student Web- & Software Development Y4 (MBO)"
+            disabled={false}
+            speed={4}
+            className="shiny-text"
+          />
+        </div>
 
         <div className="social-icons">
           <a href="https://github.com/Dylan-Ven" target="_blank" rel="noreferrer">

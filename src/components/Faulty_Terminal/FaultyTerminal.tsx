@@ -1,3 +1,4 @@
+"use client"
 import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
 import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import './FaultyTerminal.css';
@@ -258,13 +259,16 @@ export default function FaultyTerminal({
   tint = '#ffffff',
   mouseReact = true,
   mouseStrength = 0.2,
-  dpr = Math.min(window.devicePixelRatio || 1, 2),
+  // compute DPR at runtime only (avoid accessing window during SSR/module evaluation)
+  dpr,
   pageLoadAnimation = true,
   brightness = 1,
   className,
   style,
   ...rest
 }: FaultyTerminalProps) {
+  // determine dpr safely on client
+  const effectiveDpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
   const containerRef = useRef<HTMLDivElement>(null);
   const programRef = useRef<Program>(null);
   const rendererRef = useRef<Renderer>(null);
@@ -292,7 +296,7 @@ export default function FaultyTerminal({
     const ctn = containerRef.current;
     if (!ctn) return;
 
-    const renderer = new Renderer({ dpr });
+  const renderer = new Renderer({ dpr: dpr ?? effectiveDpr });
     rendererRef.current = renderer;
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 1);

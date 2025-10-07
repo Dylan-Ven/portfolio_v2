@@ -39,3 +39,10 @@
 .invisible {
   display: none;
 }
+.Titlebar{
+  height: fit-content;
+  width: fit-content;
+  backdrop-filter: blur(10px);
+  padding: 10px;
+  border-radius: 15px;
+}
