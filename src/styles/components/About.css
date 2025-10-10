@@ -1,0 +1,24 @@
+
+.about-container {
+display: grid;
+grid-template-columns: repeat(7, 1fr);
+grid-template-rows: repeat(5, 1fr);
+grid-column-gap: 0px;
+grid-row-gap: 0px;
+}
+
+.Textarea { 
+    grid-area: 1 / 1 / 5 / 5; 
+    backdrop-filter: blur(10px);
+    padding: 10px;
+}
+.ProfileCardWrapper { 
+    grid-area: 2 / 6 / 6 / 8; 
+    width: fit-content;
+}
+.pc-contact-btn {
+    background: black;
+}
+.pc-handle, .pc-status {
+    color: rgba(0, 0, 0, 0.9) !important;
+}
