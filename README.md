@@ -119,49 +119,9 @@ Example: `theme tokyo-night`
 - **Analytics:** Vercel Analytics
 - **Deployment:** Vercel
 
-## 📦 Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/Dylan-Ven/portfolio_v2.git
-
-# Navigate to directory
-cd portfolio_v2
-
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
 ## 🌐 Live Demo
 
-Visit the live portfolio: [Your Portfolio URL]
-
-## 📱 Mobile Support
-
-- Responsive viewport (100dvh)
-- Mobile-optimized ASCII art
-- Touch-friendly input
-- Prevents pull-to-refresh
-- Fixed input positioning
-
-## ⚙️ Configuration
-
-Edit `src/data/portfolio.ts` to customize:
-- Projects
-- Skills and levels
-- Work experience
-- Contact information
+Visit the live portfolio: [www.dylanvdven.xyz](https://www.dylanvdven.xyz/)
 
 ## 🎯 Key Features Explained
 
@@ -220,10 +180,3 @@ This project is open source and available under the MIT License.
 ---
 
 **Tip:** Start by typing `help` in the terminal to see all available commands!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
