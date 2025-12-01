@@ -1,36 +1,245 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portfolio v2 - Terminal Edition
 
-## Getting Started
+A modern, interactive terminal-style portfolio built with Next.js 15, React 19, and TypeScript. Experience a unique command-line interface that showcases projects, skills, and contact information.
 
-First, run the development server:
+![Portfolio Screenshot](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
+![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
+
+## 🚀 Features
+
+- **Interactive Terminal UI** - Full-featured command-line interface
+- **15 Color Themes** - From classic green to cyberpunk neon
+- **Live Discord Status** - Real-time activity via Lanyard API
+- **Easter Eggs** - Hidden commands and surprises
+- **Particle Effects** - Visual feedback on command execution
+- **CRT Screen Effect** - Optional retro screen aesthetic
+- **Mobile Optimized** - Responsive design with mobile-specific ASCII art
+- **Command History** - Navigate previous commands with arrow keys
+- **Persistent Settings** - Saves preferences to localStorage
+- **Vercel Analytics** - Built-in analytics integration
+
+## 🎮 Commands
+
+### Navigation Commands
+```bash
+help           # Show all available commands
+clear          # Clear terminal output
+home           # Go to home section
+about          # View about section
+projects       # View projects
+contact        # View contact information
+back           # Return to previous section
+```
+
+### Section Numbers
+When in any section, type a number (1-9) to access subsections:
+
+**Home Section:**
+- `1` - About section
+- `2` - Projects section
+- `3` - Contact section
+
+**About Section:**
+- `1` - Biography
+- `2` - Technical skills with progress bars
+- `3` - Frameworks & libraries
+- `4` - Work experience
+
+**Projects Section:**
+- `1-3` - View individual project details
+
+**Contact Section:**
+- `1-5` - Copy contact information to clipboard
+
+### Quick Commands
+```bash
+ls             # Alias for 'projects'
+cd <section>   # Navigate to section (e.g., cd about)
+cd ..          # Alias for 'back'
+tree           # Display directory structure
+```
+
+### Contact Commands
+Available in the contact section:
+```bash
+github         # Open GitHub profile
+linkedin       # Open LinkedIn profile
+email          # Open email client
+instagram      # Open Instagram profile
+```
+
+### Customization Commands
+```bash
+typing on/off        # Toggle typing animation effect
+sound on/off         # Toggle terminal sound effects
+crt on/off           # Toggle CRT screen effect
+theme <name>         # Change color theme
+themes               # List all available themes
+prompt set <text>    # Set custom prompt
+prompt reset         # Reset prompt to default
+```
+
+### Utility Commands
+```bash
+npm install resume   # Download resume PDF
+npm i resume         # Download resume (shorthand)
+stats                # Show session statistics
+debug on/off         # Toggle debug mode
+```
+
+## 🎨 Available Themes
+
+Type `themes` to see all options, or use `theme <name>` to switch:
+
+1. **default** - Modern blue terminal
+2. **green** - Classic green terminal
+3. **amber** - Warm amber terminal
+4. **dracula** - Dracula color scheme
+5. **monokai** - Monokai color scheme
+6. **nord** - Nord color scheme
+7. **high-contrast** - WCAG AAA accessibility
+8. **solarized-dark** - Solarized Dark
+9. **solarized-light** - Solarized Light
+10. **gruvbox** - Gruvbox retro theme
+11. **tokyo-night** - Tokyo Night theme
+12. **one-dark** - One Dark theme
+13. **synthwave** - Synthwave 80s neon
+14. **matrix** - Matrix green code
+15. **cyberpunk** - Cyberpunk 2077 style
+
+Example: `theme tokyo-night`
+
+## 🎭 Easter Eggs
+
+Hidden commands for fun:
+```bash
+matrix         # Follow the white rabbit
+hack           # Attempt to hack the mainframe
+coffee         # Brew a virtual coffee
+sudo           # Try to gain root access (password required)
+whoami         # Discover your identity
+ping           # Ping the portfolio
+fortune        # Get your fortune told
+joke           # Hear a programmer joke
+secret         # Find the secret message
+```
+
+## 🛠️ Tech Stack
+
+- **Framework:** Next.js 15 with App Router
+- **UI:** React 19
+- **Language:** TypeScript 5
+- **Styling:** CSS with CSS Variables for theming
+- **API:** Lanyard (Discord activity)
+- **Analytics:** Vercel Analytics
+- **Deployment:** Vercel
+
+## 📦 Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/Dylan-Ven/portfolio_v2.git
+
+# Navigate to directory
+cd portfolio_v2
+
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🌐 Live Demo
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Visit the live portfolio: [Your Portfolio URL]
 
-## Learn More
+## 📱 Mobile Support
 
-To learn more about Next.js, take a look at the following resources:
+- Responsive viewport (100dvh)
+- Mobile-optimized ASCII art
+- Touch-friendly input
+- Prevents pull-to-refresh
+- Fixed input positioning
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ⚙️ Configuration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Edit `src/data/portfolio.ts` to customize:
+- Projects
+- Skills and levels
+- Work experience
+- Contact information
+
+## 🎯 Key Features Explained
+
+### Command History
+- Use **↑** and **↓** arrow keys to navigate command history
+- History persists across sessions
+
+### Syntax Highlighting
+- Commands are color-coded
+- Success/error messages have distinct colors
+- URLs and emails are highlighted
+- Skill levels have color gradients
+
+### Live Discord Status
+- Integrates with Lanyard API
+- Shows current activity (gaming, music, etc.)
+- Updates every 30 seconds
+- Displays online status
+
+### Session Statistics
+Type `stats` to view:
+- Session duration
+- Commands executed
+- Sections visited
+- Most used command
+- Command history size
+
+### Debug Mode
+Type `debug on` to see:
+- React state variables
+- LocalStorage contents
+- Browser information
+- Performance metrics
+
+## 🤝 Contributing
+
+Feel free to fork this project and customize it for your own portfolio!
+
+## 📄 License
+
+This project is open source and available under the MIT License.
+
+## 👨‍💻 Author
+
+**Dylan Van Der Ven**
+- Portfolio: [Your Portfolio URL]
+- GitHub: [@Dylan-Ven](https://github.com/Dylan-Ven)
+- LinkedIn: [Dylan Van Der Ven](https://www.linkedin.com/in/dylan-van-der-ven-766a94240/)
+
+## 🙏 Acknowledgments
+
+- Inspired by classic terminal interfaces
+- Discord status powered by [Lanyard](https://github.com/Phineas/lanyard)
+- CRT effects inspired by retro computing
+
+---
+
+**Tip:** Start by typing `help` in the terminal to see all available commands!
 
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+

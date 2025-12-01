@@ -1,22 +1,33 @@
+import type { Metadata, Viewport } from 'next';
+import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
-import { ThemeProvider } from '../context/ThemeProvider';
-import ClientRadialMenu from '../components/RadialMenu/ClientRadialMenu';
 
-export const metadata = {
-  title: 'Portfolio',
-  description: 'Dylan van der Ven - Portfolio',
+export const metadata: Metadata = {
+  title: 'Dylan Van Der Ven | Portfolio',
+  description: 'Full-stack developer and UI/UX designer portfolio',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#1e1e1e',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body>
-        <ThemeProvider>
-          <div className="App">
-            <ClientRadialMenu />
-            {children}
-          </div>
-        </ThemeProvider>
+        {children}
+        <Analytics />
       </body>
     </html>
   );
