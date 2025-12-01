@@ -11,7 +11,6 @@ A modern, interactive terminal-style portfolio built with Next.js 15, React 19, 
 - **Interactive Terminal UI** - Full-featured command-line interface
 - **15 Color Themes** - From classic green to cyberpunk neon
 - **Live Discord Status** - Real-time activity via Lanyard API
-- **Easter Eggs** - Hidden commands and surprises
 - **Particle Effects** - Visual feedback on command execution
 - **CRT Screen Effect** - Optional retro screen aesthetic
 - **Mobile Optimized** - Responsive design with mobile-specific ASCII art
@@ -109,21 +108,6 @@ Type `themes` to see all options, or use `theme <name>` to switch:
 15. **cyberpunk** - Cyberpunk 2077 style
 
 Example: `theme tokyo-night`
-
-## 🎭 Easter Eggs
-
-Hidden commands for fun:
-```bash
-matrix         # Follow the white rabbit
-hack           # Attempt to hack the mainframe
-coffee         # Brew a virtual coffee
-sudo           # Try to gain root access (password required)
-whoami         # Discover your identity
-ping           # Ping the portfolio
-fortune        # Get your fortune told
-joke           # Hear a programmer joke
-secret         # Find the secret message
-```
 
 ## 🛠️ Tech Stack
 
