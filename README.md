@@ -6,7 +6,7 @@ A modern, interactive terminal-style portfolio built with Next.js 15, React 19, 
 ![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
 
-## 🚀 Features
+## Features
 
 - **Interactive Terminal UI** - Full-featured command-line interface
 - **15 Color Themes** - From classic green to cyberpunk neon
@@ -18,7 +18,7 @@ A modern, interactive terminal-style portfolio built with Next.js 15, React 19, 
 - **Persistent Settings** - Saves preferences to localStorage
 - **Vercel Analytics** - Built-in analytics integration
 
-## 🎮 Commands
+## Commands
 
 ### Navigation Commands
 ```bash
@@ -87,7 +87,7 @@ stats                # Show session statistics
 debug on/off         # Toggle debug mode
 ```
 
-## 🎨 Available Themes
+## Available Themes
 
 Type `themes` to see all options, or use `theme <name>` to switch:
 
@@ -109,7 +109,7 @@ Type `themes` to see all options, or use `theme <name>` to switch:
 
 Example: `theme tokyo-night`
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Framework:** Next.js 15 with App Router
 - **UI:** React 19
@@ -119,11 +119,11 @@ Example: `theme tokyo-night`
 - **Analytics:** Vercel Analytics
 - **Deployment:** Vercel
 
-## 🌐 Live Demo
+## Live Demo
 
 Visit the live portfolio: [www.dylanvdven.xyz](https://www.dylanvdven.xyz/)
 
-## 🎯 Key Features Explained
+## Key Features Explained
 
 ### Command History
 - Use **↑** and **↓** arrow keys to navigate command history
@@ -156,22 +156,22 @@ Type `debug on` to see:
 - Browser information
 - Performance metrics
 
-## 🤝 Contributing
+## Contributing
 
 Feel free to fork this project and customize it for your own portfolio!
 
-## 📄 License
+## License
 
 This project is open source and available under the MIT License.
 
-## 👨‍💻 Author
+## Author
 
 **Dylan Van Der Ven**
 - Portfolio: [Your Portfolio URL]
 - GitHub: [@Dylan-Ven](https://github.com/Dylan-Ven)
 - LinkedIn: [Dylan Van Der Ven](https://www.linkedin.com/in/dylan-van-der-ven-766a94240/)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Inspired by classic terminal interfaces
 - Discord status powered by [Lanyard](https://github.com/Phineas/lanyard)
