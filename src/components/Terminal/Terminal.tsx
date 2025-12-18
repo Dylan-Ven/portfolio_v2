@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { projectsData, majorProjects, minorProjects, skillsData, contactData, experienceData } from '@/data/portfolio';
+import Tetris from '@/components/Tetris/Tetris';
+import Snake from '@/components/Snake/Snake';
 import './Terminal.css';
 
 type Section = 'home' | 'about' | 'projects' | 'contact';
@@ -84,6 +86,8 @@ export default function Terminal() {
   const [discordStatus, setDiscordStatus] = useState<'online' | 'idle' | 'dnd' | 'offline'>('online');
   const [particles, setParticles] = useState<Array<{id: number, x: number, y: number}>>([]);
   const [sudoMode, setSudoMode] = useState<boolean>(false);
+  const [showTetris, setShowTetris] = useState<boolean>(false);
+  const [showSnake, setShowSnake] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -487,7 +491,7 @@ Navigate to:
       'typing', 'sound', 'theme', 'ls', 'cd', 'github', 'linkedin',
       'email', 'instagram', 'npm', 'matrix', 'hack', 'coffee', 'sudo',
       'whoami', 'ping', 'fortune', 'joke', 'secret', 'stats', 'debug', 'prompt', 'crt',
-      'copy', 'open'
+      'copy', 'open', 'tetris', 'snake'
     ];
 
     let minDistance = Infinity;
@@ -606,6 +610,9 @@ Navigate to:
   cd ..      - Alias for 'back'
   
   EASTER EGGS: Try 'matrix', 'hack', 'coffee', 'sudo', 'whoami', 'ping', 'fortune', 'joke', 'secret'
+  GAMES: 'tetris', 'snake'
+  
+  GAMES: 'tetris' or 'play tetris'
   
   In each section, type a number (1-9) or command to access subsections`);
         break;
@@ -1217,6 +1224,18 @@ Check your downloads folder.`);
           return;
         }
 
+        if (trimmedCmd === 'play tetris' || trimmedCmd === 'tetris') {
+          addOutput('Launching Tetris...');
+          setTimeout(() => setShowTetris(true), 500);
+          return;
+        }
+
+        if (trimmedCmd === 'play snake' || trimmedCmd === 'snake') {
+          addOutput('Launching Snake...');
+          setTimeout(() => setShowSnake(true), 500);
+          return;
+        }
+
         // Stats command
         if (trimmedCmd === 'stats') {
           const sessionTime = Math.floor((Date.now() - sessionStart) / 1000);
@@ -1616,14 +1635,14 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
 
   // Focus input on desktop only
   useEffect(() => {
-    if (window.innerWidth > 768) {
+    if (window.innerWidth > 768 && !showTetris && !showSnake) {
       inputRef.current?.focus();
     }
-  }, []);
+  }, [showTetris, showSnake]);
   
   const handleLayoutClick = (e: React.MouseEvent) => {
-    // Only focus input on desktop, not on mobile
-    if (window.innerWidth > 768) {
+    // Only focus input on desktop, not on mobile, and not when games are open
+    if (window.innerWidth > 768 && !showTetris && !showSnake) {
       inputRef.current?.focus();
     }
   };
@@ -1671,6 +1690,7 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
             placeholder={sudoMode ? '' : "Type 'help' for commands..."}
             autoComplete="off"
             spellCheck="false"
+            disabled={showTetris || showSnake}
           />
         </form>
         </div>
@@ -1711,6 +1731,9 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
           </div>
         </div>
       </div>
+      
+      {showTetris && <Tetris onClose={() => setShowTetris(false)} />}
+      {showSnake && <Snake onClose={() => setShowSnake(false)} />}
     </div>
   );
 }
