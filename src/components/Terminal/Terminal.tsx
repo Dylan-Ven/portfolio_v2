@@ -511,7 +511,11 @@ Navigate to:
   // Play terminal beep sound
   const playBeep = () => {
     if (soundEnabled) {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!audioContextClass) {
+        return;
+      }
+      const audioContext = new audioContextClass();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -723,9 +727,9 @@ Type 'back' to return`);
         if (currentSection === 'about') {
           setCurrentSubsection('frameworks');
           clearHistory();
-          const frontendList = skillsData.frontend.map((s: any) => s.name).join(', ');
-          const backendList = skillsData.backend.map((s: any) => s.name).join(', ');
-          const toolsList = skillsData.tools.map((s: any) => s.name).join(', ');
+          const frontendList = skillsData.frontend.map((s) => s.name).join(', ');
+          const backendList = skillsData.backend.map((s) => s.name).join(', ');
+          const toolsList = skillsData.tools.map((s) => s.name).join(', ');
           addOutput(`FRAMEWORKS & LIBRARIES
 
 Frontend: ${frontendList}
@@ -1268,6 +1272,7 @@ Check your downloads folder.`);
             return;
           }
           setDebugMode(true);
+          const performanceMemory = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
           const debugInfo = `DEBUG MODE ENABLED 🐛
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1293,7 +1298,7 @@ Viewport: ${window.innerWidth}x${window.innerHeight}
 Language: ${navigator.language}
 
 [PERFORMANCE]
-Memory: ${(performance as any).memory ? ((performance as any).memory.usedJSHeapSize / 1048576).toFixed(2) + ' MB' : 'N/A'}
+Memory: ${performanceMemory ? (performanceMemory.usedJSHeapSize / 1048576).toFixed(2) + ' MB' : 'N/A'}
 Uptime: ${Math.floor((Date.now() - sessionStart) / 1000)}s
 
 Type 'debug off' to disable`;
@@ -1422,9 +1427,9 @@ Type 'back' to return`);
       } else if (num === 3) {
         setCurrentSubsection('frameworks');
         clearHistory();
-        const frontendList = skillsData.frontend.map((s: any) => s.name).join(', ');
-        const backendList = skillsData.backend.map((s: any) => s.name).join(', ');
-        const toolsList = skillsData.tools.map((s: any) => s.name).join(', ');
+        const frontendList = skillsData.frontend.map((s) => s.name).join(', ');
+        const backendList = skillsData.backend.map((s) => s.name).join(', ');
+        const toolsList = skillsData.tools.map((s) => s.name).join(', ');
         addOutput(`FRAMEWORKS & LIBRARIES
 
 Frontend: ${frontendList}
