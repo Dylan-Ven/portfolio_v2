@@ -9,24 +9,23 @@ export default function Home() {
   
   // Generate random values for boot sequence (only once)
   const bootText = useMemo(() => {
-    const serverNumber = Math.floor(Math.random() * 8) + 1;
+    const serverNumber = Math.floor(Math.random() * 25) + 1;
     const biosVersion = `RBIOS-4.02.08.${String(Math.floor(Math.random() * 99) + 1).padStart(2, '0')}`;
     const memorySize = [32, 64, 128, 256][Math.floor(Math.random() * 4)];
     const rootCode = Math.floor(Math.random() * 9000) + 1000;
     const serialCode = `52EE5.E${Math.floor(Math.random() * 9) + 1}.E${Math.floor(Math.random() * 9) + 1}`;
+    const fakeUUID = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); });
+
     
-    return `NST.v2 OPERATING SYSTEM
-COPYRIGHT 2026-2028 
--Server ${serverNumber}-
-
->SET TERMINAL/INQUIRE
-
-RIT-V300
+    return `
+    NST.v2 // NiSuTe SYSTEMS ARCHITECTURE
+    [NODE: ${serverNumber}]
+    >SET TERMINAL/INQUIRE
+    >UUID: ${}
 
 >SET FILE/PROTECTION=OWNER:RWED ACCOUNTS.F
 >SET HALT RESTART/MAINT
 
-Initializing Robco Industries(TM) MF Boot Agent v2.3.0
 RETROS BIOS
 ${biosVersion} ${serialCode}
 Copyright 2201-2203 Robco Ind.
