@@ -9,32 +9,59 @@ export default function Home() {
   
   // Generate random values for boot sequence (only once)
   const bootText = useMemo(() => {
-    const serverNumber = Math.floor(Math.random() * 8) + 1;
+    const cryptoApi = globalThis.crypto;
+    const generateSecureUUID = () => {
+      if (cryptoApi?.randomUUID) {
+        return cryptoApi.randomUUID();
+      }
+
+      if (cryptoApi?.getRandomValues) {
+        const bytes = new Uint8Array(16);
+        cryptoApi.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+
+      return '00000000-0000-4000-8000-000000000000';
+    };
+
+    const serverNumber = Math.floor(Math.random() * 25) + 1;
     const biosVersion = `RBIOS-4.02.08.${String(Math.floor(Math.random() * 99) + 1).padStart(2, '0')}`;
     const memorySize = [32, 64, 128, 256][Math.floor(Math.random() * 4)];
     const rootCode = Math.floor(Math.random() * 9000) + 1000;
     const serialCode = `52EE5.E${Math.floor(Math.random() * 9) + 1}.E${Math.floor(Math.random() * 9) + 1}`;
+    const fakeUUID = generateSecureUUID();
+
     
-    return `NST.v2 OPERATING SYSTEM
-COPYRIGHT 2026-2028 
--Server ${serverNumber}-
+    return `
+    NST.v2 // NiSuTe SYSTEMS ARCHITECTURE
+    [NODE: ${serverNumber}]
+    >UUID: ${fakeUUID}
+    PROPERTY OF NISUTE EUROPE MEDIA LABS // EST. 199X
 
->SET TERMINAL/INQUIRE
+    > QUERY CONSOLE /SYNC
 
-RIT-V300
+    NST-M800 "LENSMASTER"
 
->SET FILE/PROTECTION=OWNER:RWED ACCOUNTS.F
->SET HALT RESTART/MAINT
+    > GRANT PERM /LEVEL:ROOT /USER:ADMIN
+    Logic-Gate: OPEN. [RWED] privileges assigned to ADMIN.
 
-Initializing Robco Industries(TM) MF Boot Agent v2.3.0
-RETROS BIOS
-${biosVersion} ${serialCode}
-Copyright 2201-2203 Robco Ind.
-Uppermem: ${memorySize} KB
-Root (${rootCode})
-Maintenance Mode
+    > ABORT RECOVERY /STATE:HOLD
+    Automatic reboot cicles: SUSPENDED. System in static state. Awaiting further instructions.
 
->RUN DEBUG/ACCOUNTS.F`;
+    NIS-TECH FIRMWARE (c) 2201-2203
+    CORE-BUILD: ${biosVersion} // UNIT: ${serialCode}
+    UPPER-STACK: ${memorySize} GB
+    IDENT: ${rootCode}
+    STATUS: [MAINTENANCE OVERRIDE ACTIVE]
+    !! NOTICE: DIRECT DATA-STREAM ACCESS ACTIVE. PARITY CHECKS DISABLED. !!
+
+    > LAUNCH TRACE /MAP:ACCOUNTS.F
+    Scrubbing Bit-Map...
+    Injecting Override...
+    Console Ready.`;
   }, []);
 
   useEffect(() => {
