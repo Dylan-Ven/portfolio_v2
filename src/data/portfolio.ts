@@ -4,7 +4,7 @@ export const majorProjects = [
     name: "Portfolio Terminal",
     description: "My current, Interactive terminal-style portfolio with command system",
     tech: ["React", "Next.js", "TypeScript"],
-    link: "https://github.com/Dylan-Ven/portfolio",
+    link: "https://github.com/Dylan-Ven/portfolio_v2",
     webapp: "https://www.dylanvdven.xyz/",
     status: "Online",
     image: "/images/Portfolio1.png"
@@ -14,7 +14,7 @@ export const majorProjects = [
     name: "My first Portfolio",
     description: "I created my first portfolio back in the second year of my schooling, I built it with Astro on a reccomendation from a friend, this was my first time using a framework I got a 7/10 for this project",
     tech: ["Astro", "Javascript"],
-    link: "https://github.com/Dylan-Ven/3d-ai",
+    link: "https://github.com/Dylan-Ven/portfolio_1",
     webapp: "",
     status: "Offline",
     image: "/images/Portfolio1.png"
@@ -46,7 +46,7 @@ export const majorProjects = [
     tech: ["Svelte", "TypeScript", "PHP"],
     link: "https://github.com/Dylan-Ven/ClassProject",
     webapp: "",
-    status: "Offline, API is down",
+    status: "Offline",
     image: "/images/Portfolio1.png"
   },
   {
@@ -67,6 +67,16 @@ export const majorProjects = [
     link: "https://github.com/Yonder-ICT-Mediatechnologie/proftaak-p4-dylan",
     webapp: "",
     status: "Offline, Never published",
+    image: "/images/Portfolio1.png"
+  },
+  {
+    id: 8,
+    name: "TrackId.Studio",
+    description: "This project, I worked on making a music-recognition application, where i continued building on something that was already realised.",
+    tech: ["React", "TypeScript", "Kotlin", "Swift", "Flutter (Dart)"],
+    link: "#",
+    webapp: "#",
+    status: "Not Published Yet, ETA: Q2 2026",
     image: "/images/Portfolio1.png"
   }
 ];
@@ -109,7 +119,7 @@ export const minorProjects = [
     tech: ["Discord.js", "cookies", "FFMPEG"],
     link: "",
     webapp: "",
-    status: "Private, In Development",
+    status: "Temporarily stopped development, December 2025",
     image: "/images/Portfolio1.png"
   },
   {
@@ -120,6 +130,16 @@ export const minorProjects = [
     link: "",
     webapp: "",
     status: "Offline, In Development",
+    image: "/images/Portfolio1.png"
+  },
+  {
+    id: 6,
+    name: "Just Another RTS",
+    description: "I wanted a strategy game, with ideas from different RTS games, so i started making one.",
+    tech: ["HTML", "CSS", "JavaScript"],
+    link: "",
+    webapp: "",
+    status: "In early early development",
     image: "/images/Portfolio1.png"
   }
 ];
@@ -190,11 +210,57 @@ export const experienceData = [
   }
 ];
 
+export type BacklogStatus = 'learning' | 'building' | 'researching' | 'done';
+
+export interface LearningBacklogItem {
+  id: number;
+  topic: string;
+  status: BacklogStatus;
+  focus: string;
+  eta: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export const learningBacklog: LearningBacklogItem[] = [
+  {
+    id: 1,
+    topic: 'Advanced TypeScript patterns',
+    status: 'learning',
+    focus: 'Utility types, generics, and safer state modeling in React apps',
+    eta: 'never',
+    priority: 'high'
+  },
+  {
+    id: 2,
+    topic: 'Kotlin and Android development',
+    status: 'learning',
+    focus: 'Kotlin basics, Android app development, and UI/UX design',
+    eta: 'TBD',
+    priority: 'low'
+  },
+  {
+    id: 3,
+    topic: 'DevOps baseline for portfolio projects',
+    status: 'researching',
+    focus: 'CI checks, deployment pipelines, and environment hardening',
+    eta: 'Q3 2026',
+    priority: 'medium'
+  },
+  {
+    id: 4,
+    topic: 'How to cook for dummies',
+    status: 'done',
+    focus: 'Basic cooking techniques for dummies',
+    eta: 'Completed',
+    priority: 'high'
+  }
+];
+
 export const contactData = [
   {
     label: "EMAIL",
-    value: "dylanvanderven@outlook.com",
-    link: "mailto:dylanvanderven@outlook.com"
+    value: "ven.dylanvander@gmail.com",
+    link: "mailto:ven.dylanvander@gmail.com"
   },
   {
     label: "GITHUB",

@@ -17,6 +17,8 @@ A modern, interactive terminal-style portfolio built with Next.js 15, React 19, 
 - **Command History** - Navigate previous commands with arrow keys
 - **Persistent Settings** - Saves preferences to localStorage
 - **Vercel Analytics** - Built-in analytics integration
+- **Virtual File Navigation** - Supports realistic `cd` patterns, including absolute/relative paths and `..`
+- **Built-in Mini Games** - Launchable Tetris and Snake overlays
 
 ## Commands
 
@@ -55,6 +57,8 @@ When in any section, type a number (1-9) to access subsections:
 ```bash
 ls             # Alias for 'projects'
 cd <section>   # Navigate to section (e.g., cd about)
+cd <path>      # Navigate virtual paths (absolute/relative)
+cd projects/<slug>  # Open specific project directly
 cd ..          # Alias for 'back'
 tree           # Display directory structure
 ```
@@ -84,6 +88,10 @@ prompt reset         # Reset prompt to default
 npm install resume   # Download resume PDF
 npm i resume         # Download resume (shorthand)
 stats                # Show session statistics
+neofetch             # Show compact system profile
+backlog              # Show learning backlog
+backlog next/focus/done  # Filter backlog entries
+git push             # Push current branch to remote
 debug on/off         # Toggle debug mode
 ```
 
@@ -148,6 +156,11 @@ Type `stats` to view:
 - Sections visited
 - Most used command
 - Command history size
+
+### Virtual Filesystem Navigation
+- Use `tree` to inspect the virtual structure
+- Use `cd /home/dylan/about`, `cd ../contact`, or `cd projects/major/<slug>`
+- Supports both absolute and relative path traversal
 
 ### Debug Mode
 Type `debug on` to see:

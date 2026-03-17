@@ -1,19 +1,79 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { projectsData, majorProjects, minorProjects, skillsData, contactData, experienceData } from '@/data/portfolio';
-import Tetris from '@/components/Tetris/Tetris';
-import Snake from '@/components/Snake/Snake';
+import dynamic from 'next/dynamic';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { projectsData, majorProjects, minorProjects, skillsData, contactData, experienceData, learningBacklog } from '@/data/portfolio';
 import './Terminal.css';
 
 type Section = 'home' | 'about' | 'projects' | 'contact';
 type Subsection = string | null;
+type ProjectCategory = 'major' | 'minor';
+type PortfolioProject = typeof majorProjects[number];
 
 interface TerminalLine {
   type: 'input' | 'output' | 'error';
   content: string;
 }
 
+const Tetris = dynamic(() => import('@/components/Tetris/Tetris'), {
+  ssr: false,
+  loading: () => null,
+});
+
+const Snake = dynamic(() => import('@/components/Snake/Snake'), {
+  ssr: false,
+  loading: () => null,
+});
+
+const AVAILABLE_COMMANDS = [
+  'help', 'clear', 'home', 'about', 'bio', 'skills', 'frameworks',
+  'experience', 'projects', 'contact', 'back', 'themes', 'tree',
+  'typing', 'sound', 'theme', 'ls', 'cd', 'github', 'linkedin',
+  'email', 'instagram', 'npm', 'matrix', 'hack', 'coffee', 'sudo',
+  'whoami', 'ping', 'fortune', 'joke', 'secret', 'stats', 'debug', 'prompt', 'crt',
+  'neofetch', 'backlog',
+  'copy', 'open', 'tetris', 'snake'
+] as const;
+
+const applySyntaxHighlighting = (value: string): string => {
+  let text = value;
+
+  text = text.replace(/\[(\d+)\]/g, '<span class="syntax-bracket">[</span><span class="syntax-number">$1</span><span class="syntax-bracket">]</span>');
+
+  text = text.replace(/\[([█░]+)\]\s+([1-5])\/5/g, (_match, bar, level) => {
+    const levelNum = parseInt(level, 10);
+    let color = '';
+    if (levelNum === 1) color = '#8b0000';
+    else if (levelNum === 2) color = '#cc0000';
+    else if (levelNum === 3) color = '#ffcc00';
+    else if (levelNum === 4) color = '#90ee90';
+    else if (levelNum === 5) color = '#00cc00';
+    return `<span style="color: ${color}">[${bar}] ${level}/5</span>`;
+  });
+
+  text = text.replace(/(✓|✅|SUCCESS|successful|Downloaded|completed|enabled|disabled)/gi, '<span class="syntax-success">$1</span>');
+  text = text.replace(/(ERROR|FAILED|undefined|No such)/gi, '<span class="syntax-error">$1</span>');
+  text = text.replace(/(https?:\/\/[^\s]+)/g, '<span class="syntax-link">$1</span>');
+  text = text.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<span class="syntax-link">$1</span>');
+  text = text.replace(/(📦|⠋|🔗)/g, '<span class="syntax-highlight">$1</span>');
+  text = text.replace(/^(\s*)(help|clear|home|about|projects|contact|back|ls|cd|npm|github|linkedin|email|instagram|typing|theme|themes|sound|tree|experience|copy|open|crt|debug|prompt|stats|neofetch|backlog)(\s)/gm, '$1<span class="syntax-command">$2</span>$3');
+
+  return text;
+};
+
+const HistoryEntry = memo(function HistoryEntry({ line }: { line: TerminalLine }) {
+  const content = line.type === 'output' || line.type === 'error'
+    ? applySyntaxHighlighting(line.content)
+    : line.content;
+
+  return (
+    <div className={`history-line ${line.type}`}>
+      <pre dangerouslySetInnerHTML={{ __html: content }} />
+    </div>
+  );
+});
+
 export default function Terminal() {
+  const developerEmail = contactData.find((item) => item.label === 'EMAIL')?.value ?? 'developer@example.com';
   const [currentSection, setCurrentSection] = useState<Section>('home');
   const [currentSubsection, setCurrentSubsection] = useState<Subsection>(null);
   const [input, setInput] = useState('');
@@ -27,7 +87,6 @@ export default function Terminal() {
     return [];
   });
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [copied, setCopied] = useState<string | null>(null);
   const [typingEffect, setTypingEffect] = useState<boolean>(() => {
     // Load typing effect preference from localStorage
     if (typeof window !== 'undefined') {
@@ -61,7 +120,6 @@ export default function Terminal() {
     }
     return false;
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [hasBooted, setHasBooted] = useState<boolean>(() => {
     // Check if already booted this session
     if (typeof window !== 'undefined') {
@@ -88,12 +146,19 @@ export default function Terminal() {
   const [sudoMode, setSudoMode] = useState<boolean>(false);
   const [showTetris, setShowTetris] = useState<boolean>(false);
   const [showSnake, setShowSnake] = useState<boolean>(false);
+  const [showFake404, setShowFake404] = useState<boolean>(false);
+  const [systemNow, setSystemNow] = useState<Date>(new Date());
+  const [cpuLoad, setCpuLoad] = useState<number>(32);
+  const [memoryLoad, setMemoryLoad] = useState<number>(46);
   const inputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const particleIdRef = useRef<number>(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gitPushTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
   // Initialize
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     showHomeContent();
     
@@ -173,6 +238,7 @@ Navigate to:
       document.documentElement.setAttribute('data-theme', currentTheme);
     }
   }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Save command history to localStorage whenever it changes
   useEffect(() => {
@@ -201,7 +267,31 @@ Navigate to:
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
+
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        void audioContextRef.current.close();
+      }
+
+      gitPushTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+      gitPushTimeoutsRef.current = [];
     };
+  }, []);
+
+  // Simulated diagnostics ticker
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSystemNow(new Date());
+      setCpuLoad(prev => {
+        const next = prev + (Math.random() * 10 - 5);
+        return Math.max(8, Math.min(96, Math.round(next)));
+      });
+      setMemoryLoad(prev => {
+        const next = prev + (Math.random() * 8 - 4);
+        return Math.max(12, Math.min(92, Math.round(next)));
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Fetch Discord activity via Lanyard
@@ -314,15 +404,9 @@ Navigate to:
       // Add typing animation
       setIsTyping(true);
       let currentIndex = 0;
-      const lines = content.split('\n');
-      const tempHistory: TerminalLine[] = [];
 
       const typeNextChar = () => {
         if (currentIndex < content.length) {
-          const char = content[currentIndex];
-          const currentLineIndex = content.substring(0, currentIndex + 1).split('\n').length - 1;
-          const currentLineContent = content.substring(0, currentIndex + 1).split('\n')[currentLineIndex];
-          
           setHistory(prev => {
             const newHistory = [...prev];
             if (newHistory.length > 0 && newHistory[newHistory.length - 1].type === type && currentIndex > 0) {
@@ -362,7 +446,6 @@ Navigate to:
 
   // Show loading animation
   const showLoading = async (callback: () => void, delay: number = 300) => {
-    setIsLoading(true);
     const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     let frameIndex = 0;
     const loadingLine: TerminalLine = { type: 'output', content: `Loading... ${frames[0]}` };
@@ -387,17 +470,15 @@ Navigate to:
     
     // Remove loading line
     setHistory(prev => prev.filter(line => !line.content.startsWith('Loading...')));
-    setIsLoading(false);
     callback();
   };
 
   const handleCopy = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(label);
-      setTimeout(() => setCopied(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy');
+      addOutput(`Copied ${label}: ${text}`);
+    } catch {
+      addOutput('Failed to copy to clipboard', 'error');
     }
   };
 
@@ -421,40 +502,21 @@ Navigate to:
     setCurrentSubsection(null);
   };
 
-  // Syntax highlighting function
-  const applySyntaxHighlighting = (text: string): string => {
-    // Highlight numbers in brackets [1], [2], etc.
-    text = text.replace(/\[(\d+)\]/g, '<span class="syntax-bracket">[</span><span class="syntax-number">$1</span><span class="syntax-bracket">]</span>');
-    
-    // Highlight skill progress bars with color coding
-    text = text.replace(/\[([█░]+)\]\s+([1-5])\/5/g, (match, bar, level) => {
-      const levelNum = parseInt(level);
-      let color = '';
-      if (levelNum === 1) color = '#8b0000'; // Dark red
-      else if (levelNum === 2) color = '#cc0000'; // Red  
-      else if (levelNum === 3) color = '#ffcc00'; // Yellow
-      else if (levelNum === 4) color = '#90ee90'; // Light green
-      else if (levelNum === 5) color = '#00cc00'; // Dark green
-      return `<span style="color: ${color}">[${bar}] ${level}/5</span>`;
-    });
-    
-    // Highlight success symbols and messages (order matters - longer words first)
-    text = text.replace(/(✓|✅|SUCCESS|successful|Downloaded|completed|enabled|disabled)/gi, '<span class="syntax-success">$1</span>');
-    
-    // Highlight error messages
-    text = text.replace(/(ERROR|FAILED|undefined|No such)/gi, '<span class="syntax-error">$1</span>');
-    
-    // Highlight URLs and links
-    text = text.replace(/(https?:\/\/[^\s]+)/g, '<span class="syntax-link">$1</span>');
-    text = text.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<span class="syntax-link">$1</span>');
-    
-    // Highlight loading symbols
-    text = text.replace(/(📦|⠋|🔗)/g, '<span class="syntax-highlight">$1</span>');
-    
-    // Highlight command names in help text
-    text = text.replace(/^(\s*)(help|clear|home|about|projects|contact|back|ls|cd|npm|github|linkedin|email|instagram|typing|theme|themes|sound|tree|experience|copy|open|crt|debug|prompt|stats)(\s)/gm, '$1<span class="syntax-command">$2</span>$3');
-    
-    return text;
+  const createProjectSlug = (value: string): string => {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  const formatTreeBranch = (items: string[], prefix: string): string => {
+    if (!items.length) {
+      return `${prefix}└── (empty)/`;
+    }
+
+    return items
+      .map((item, index) => `${prefix}${index === items.length - 1 ? '└──' : '├──'} ${item}/`)
+      .join('\n');
   };
 
   // Calculate Levenshtein distance for command suggestions
@@ -485,19 +547,10 @@ Navigate to:
 
   // Find closest matching command
   const findSimilarCommand = (input: string): string | null => {
-    const commands = [
-      'help', 'clear', 'home', 'about', 'bio', 'skills', 'frameworks', 
-      'experience', 'projects', 'contact', 'back', 'themes', 'tree',
-      'typing', 'sound', 'theme', 'ls', 'cd', 'github', 'linkedin',
-      'email', 'instagram', 'npm', 'matrix', 'hack', 'coffee', 'sudo',
-      'whoami', 'ping', 'fortune', 'joke', 'secret', 'stats', 'debug', 'prompt', 'crt',
-      'copy', 'open', 'tetris', 'snake'
-    ];
-
     let minDistance = Infinity;
     let closestCommand = null;
 
-    for (const cmd of commands) {
+    for (const cmd of AVAILABLE_COMMANDS) {
       const distance = levenshteinDistance(input.toLowerCase(), cmd.toLowerCase());
       if (distance < minDistance && distance <= 2) {
         minDistance = distance;
@@ -509,13 +562,22 @@ Navigate to:
   };
 
   // Play terminal beep sound
-  const playBeep = () => {
+  const playBeep = useCallback(() => {
     if (soundEnabled) {
       const audioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!audioContextClass) {
         return;
       }
-      const audioContext = new audioContextClass();
+
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        audioContextRef.current = new audioContextClass();
+      }
+
+      const audioContext = audioContextRef.current;
+      if (audioContext.state === 'suspended') {
+        void audioContext.resume();
+      }
+
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -531,7 +593,7 @@ Navigate to:
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.1);
     }
-  };
+  }, [soundEnabled]);
 
   // Add output with delay for multi-line content
   const addOutputWithDelay = async (lines: string[]) => {
@@ -539,6 +601,121 @@ Navigate to:
       await new Promise(resolve => setTimeout(resolve, 1000));
       addOutput(line);
     }
+  };
+
+  const runGitPushPrank = () => {
+    if (showFake404) {
+      return;
+    }
+
+    const clearPrankTimeouts = () => {
+      gitPushTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+      gitPushTimeoutsRef.current = [];
+    };
+
+    clearPrankTimeouts();
+
+    const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randomFloat = (min: number, max: number) => (Math.random() * (max - min) + min).toFixed(2);
+    const withJitter = (base: number, jitter: number) => base + randomInt(-jitter, jitter);
+
+    const objectCount = randomInt(8, 34);
+    const compressedCount = Math.max(2, Math.floor(objectCount * (Math.random() * 0.35 + 0.35)));
+    const writtenCount = Math.max(3, objectCount - randomInt(1, 6));
+    const payloadKiB = randomFloat(0.88, 5.6);
+    const transferRate = randomFloat(0.82, 9.75);
+    const deltaCount = Math.max(1, Math.floor(writtenCount * (Math.random() * 0.6 + 0.15)));
+    const rejectionReasons = ['fetch first', 'non-fast-forward', 'remote contains work that you do not have locally'];
+    const rejectionReason = rejectionReasons[randomInt(0, rejectionReasons.length - 1)];
+    const remoteFormats = [
+      'github.com:Dylan-Ven/portfolio_v2.git',
+      'git@github.com:Dylan-Ven/portfolio_v2.git',
+      'https://github.com/Dylan-Ven/portfolio_v2.git',
+      'ssh://git@github.com/Dylan-Ven/portfolio_v2.git',
+    ];
+    const selectedRemote = remoteFormats[randomInt(0, remoteFormats.length - 1)];
+
+    const baseTimeline = {
+      enumerate: 900,
+      count: 1700,
+      compress: 2450,
+      write: 3200,
+      total: 3950,
+      remote: 4600,
+      reject: 5400,
+      panic: 6500,
+      show404: 7600,
+      reset: 22000,
+    };
+
+    const timeline = {
+      enumerate: withJitter(baseTimeline.enumerate, 120),
+      count: withJitter(baseTimeline.count, 140),
+      compress: withJitter(baseTimeline.compress, 160),
+      write: withJitter(baseTimeline.write, 180),
+      total: withJitter(baseTimeline.total, 200),
+      remote: withJitter(baseTimeline.remote, 220),
+      reject: withJitter(baseTimeline.reject, 260),
+      panic: withJitter(baseTimeline.panic, 320),
+      show404: withJitter(baseTimeline.show404, 320),
+      reset: withJitter(baseTimeline.reset, 600),
+    };
+
+    addOutput('Pushing to main..');
+
+    const enumerateTimeout = setTimeout(() => {
+      addOutput(`Enumerating objects: ${objectCount}, done.`);
+    }, timeline.enumerate);
+
+    const countingTimeout = setTimeout(() => {
+      addOutput(`Counting objects: 100% (${objectCount}/${objectCount}), done.`);
+    }, timeline.count);
+
+    const compressTimeout = setTimeout(() => {
+      addOutput(`Compressing objects: 100% (${compressedCount}/${compressedCount}), done.`);
+    }, timeline.compress);
+
+    const writingTimeout = setTimeout(() => {
+      addOutput(`Writing objects: 100% (${writtenCount}/${writtenCount}), ${payloadKiB} KiB | ${transferRate} MiB/s, done.`);
+    }, timeline.write);
+
+    const totalTimeout = setTimeout(() => {
+      addOutput(`Total ${writtenCount} (delta ${deltaCount}), reused 0 (delta 0), pack-reused 0`);
+    }, timeline.total);
+
+    const remoteTimeout = setTimeout(() => {
+      addOutput(`To ${selectedRemote}`);
+    }, timeline.remote);
+
+    const rejectTimeout = setTimeout(() => {
+      addOutput(` ! [rejected]        main -> main (${rejectionReason})`, 'error');
+    }, timeline.reject);
+
+    const panicTimeout = setTimeout(() => {
+      addOutput('What have you done?!', 'error');
+    }, timeline.panic);
+
+    const show404Timeout = setTimeout(() => {
+      setShowFake404(true);
+    }, timeline.show404);
+
+    const resetTimeout = setTimeout(() => {
+      setShowFake404(false);
+      clearPrankTimeouts();
+    }, timeline.reset);
+
+    gitPushTimeoutsRef.current = [
+      enumerateTimeout,
+      countingTimeout,
+      compressTimeout,
+      writingTimeout,
+      totalTimeout,
+      remoteTimeout,
+      rejectTimeout,
+      panicTimeout,
+      show404Timeout,
+      resetTimeout,
+    ];
   };
 
   const executeCommand = (cmd: string) => {
@@ -566,7 +743,7 @@ Navigate to:
     setCommandCount(prev => prev + 1);
     setCommandFrequency(prev => {
       const newMap = new Map(prev);
-      newMap.set(cmd, (newMap.get(cmd) || 0) + 1);
+      newMap.set(trimmedCmd, (newMap.get(trimmedCmd) || 0) + 1);
       return newMap;
     });
 
@@ -590,9 +767,13 @@ Navigate to:
   contact    - Go to contact information
   back       - Go back to previous section
   stats      - Show session statistics
+  neofetch   - Show system profile panel
+  backlog    - Show current learning backlog
+  backlog next/focus/done - Filter learning backlog
   debug on/off - Toggle debug mode
   prompt set <text> - Set custom prompt
   prompt reset - Reset prompt to default
+  git push   - Push current branch to remote
   npm install resume - Download resume
   npm i resume       - Download resume (shorthand)
   typing on/off - Toggle typing effect animation
@@ -611,6 +792,7 @@ Navigate to:
   ALIASES:
   ls         - Alias for 'projects'
   cd <section> - Navigate to section (e.g., cd about)
+  cd projects/<slug> - Open specific project directly
   cd ..      - Alias for 'back'
   
   EASTER EGGS: Try 'matrix', 'hack', 'coffee', 'sudo', 'whoami', 'ping', 'fortune', 'joke', 'secret'
@@ -702,13 +884,6 @@ Type 'back' to return`);
             return filled + empty;
           };
           
-          const getSkillColor = (level: number) => {
-            if (level <= 2) return level === 1 ? '#8b0000' : '#cc0000'; // Dark red to red
-            if (level === 3) return '#ffcc00'; // Yellow
-            if (level === 4) return '#90ee90'; // Light green
-            return '#00cc00'; // Dark green
-          };
-          
           const skillsOutput = Object.entries(skillsData).map(([category, items]) => {
             const skillsList = (items as Array<{name: string, level: number}>).map(skill => {
               const bar = getProgressBar(skill.level);
@@ -746,7 +921,7 @@ Type 'back' to return`);
         if (currentSection === 'about') {
           setCurrentSubsection('experience');
           clearHistory();
-          const experienceOutput = experienceData.map((exp, index) => {
+          const experienceOutput = experienceData.map((exp) => {
             const descriptions = exp.description.map(d => `    • ${d}`).join('\n');
             const techStack = `    Tech: ${exp.tech.join(', ')}`;
             return `
@@ -954,29 +1129,15 @@ Example: theme tokyo-night`);
         break;
 
       case 'tree':
-        addOutput(`/
-├── home/
-│   └── dylan/
-│       ├── about/
-│       │   ├── bio.txt
-│       │   ├── skills.json
-│       │   └── frameworks.md
-│       ├── projects/
-│       │   ├── portfolio-terminal/
-│       │   ├── webgl-experience/
-│       │   └── fullstack-app/
-│       ├── contact/
-│       │   ├── email.link
-│       │   ├── github.link
-│       │   ├── linkedin.link
-│       │   └── instagram.link
-│       └── resume/
-│           └── Dylan_van_der_Ven_Resume.pdf (installable)
-└── public/
-    └── portfolio.html
+        addOutput(`${directoryTreeText}
 
-Use: cd <section> to navigate
-Example: cd about`);
+      Use: cd <section> to navigate
+      Use: cd projects/<slug> to open a project directly`);
+        break;
+
+      case 'git push':
+      case 'git push origin main':
+        runGitPushPrank();
         break;
 
       default:
@@ -1006,44 +1167,217 @@ Example: cd about`);
         // Handle 'cd' command
         if (trimmedCmd.startsWith('cd ')) {
           const target = trimmedCmd.substring(3).trim();
-          
-          if (target === '..') {
-            // cd .. is alias for back
-            if (currentSubsection) {
-              setCurrentSubsection(null);
-              if (currentSection === 'about') {
-                clearHistory();
-                showAboutMenu();
-                addOutput(`ABOUT DYLAN VAN DER VEN
 
-[1] bio        - About me
-[2] skills     - Technical skills (with levels)
-[3] frameworks - Frameworks & libraries
-[4] experience - Work history & timeline
-
-Type a number or command to view`);
-              } else if (currentSection === 'projects') {
-                clearHistory();
-                const projectsList = projectsData.map((p, i) => 
-                  `[${i + 1}] ${p.name} - ${p.description}`
-                ).join('\n');
-                addOutput(`PROJECTS\n\n${projectsList}\n\nType a number (1-${projectsData.length}) to view details`);
+          const openProjectBySlug = (slug: string, category?: 'major' | 'minor') => {
+            if (category) {
+              const projectList = category === 'major' ? majorProjects : minorProjects;
+              const scopedIndex = projectList.findIndex((project) => createProjectSlug(project.name) === slug);
+              if (scopedIndex !== -1) {
+                openProjectDetails(category, scopedIndex);
+                return true;
               }
-            } else {
-              addOutput('Already at main section. Type a section name to navigate.', 'error');
+              return false;
             }
+
+            const majorIndex = majorProjects.findIndex((project) => createProjectSlug(project.name) === slug);
+            if (majorIndex !== -1) {
+              openProjectDetails('major', majorIndex);
+              return true;
+            }
+
+            const minorIndex = minorProjects.findIndex((project) => createProjectSlug(project.name) === slug);
+            if (minorIndex !== -1) {
+              openProjectDetails('minor', minorIndex);
+              return true;
+            }
+
+            return false;
+          };
+
+          const triggerResumeDownload = () => {
+            addOutput(`📦 Installing resume...
+⠋ Downloading Dylan_van_der_Ven_Resume.pdf
+✓ Resume downloaded successfully!
+
+Check your downloads folder.`);
+
+            const link = document.createElement('a');
+            link.href = '/resume/Dylan_van_der_Ven_Resume.pdf';
+            link.download = 'Dylan_van_der_Ven_Resume.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          const openContactByPath = (contactPath: string): boolean => {
+            const key = contactPath.replace(/\.link$/i, '');
+            const contact = contactData.find((item) => item.label.toLowerCase() === key);
+            if (!contact) {
+              return false;
+            }
+
+            if (contact.link && contact.link !== '#') {
+              addOutput(`Opening ${key}...`);
+              window.open(contact.link, '_blank');
+            } else {
+              handleCopy(contact.value, contact.label);
+            }
+            return true;
+          };
+
+          const normalizedTarget = target
+            .replace(/\/+/g, '/')
+            .replace(/\/$/, '');
+
+          const resolvePathParts = (pathValue: string): string[] => {
+            const baseParts = pathValue.startsWith('/') ? [] : currentVirtualPathParts;
+            const incomingParts = pathValue.replace(/^\/+/, '').split('/').filter(Boolean);
+            const stack = [...baseParts];
+
+            for (const part of incomingParts) {
+              if (part === '.') {
+                continue;
+              }
+
+              if (part === '..') {
+                if (stack.length > 0) {
+                  stack.pop();
+                }
+                continue;
+              }
+
+              stack.push(part);
+            }
+
+            return stack;
+          };
+
+          const navigateToResolvedPath = (resolvedParts: string[]): boolean => {
+            if (resolvedParts.length === 0) {
+              executeCommand('home');
+              return true;
+            }
+
+            if (resolvedParts[0] === 'public') {
+              if (resolvedParts.length === 1 || (resolvedParts.length === 2 && resolvedParts[1] === 'portfolio.html')) {
+                addOutput('Opening portfolio home page...');
+                window.open('/', '_blank');
+                return true;
+              }
+              return false;
+            }
+
+            if (resolvedParts[0] !== 'home') {
+              return false;
+            }
+
+            if (resolvedParts.length === 1) {
+              executeCommand('home');
+              return true;
+            }
+
+            if (resolvedParts[1] !== 'dylan') {
+              return false;
+            }
+
+            const localParts = resolvedParts.slice(2);
+
+            if (localParts.length === 0) {
+              executeCommand('home');
+              return true;
+            }
+
+            const [section, second, third] = localParts;
+
+            if (section === 'about') {
+              if (!second) {
+                executeCommand('about');
+                return true;
+              }
+
+              const aboutMapping: Record<string, 'bio' | 'skills' | 'frameworks' | 'experience'> = {
+                bio: 'bio',
+                'bio.txt': 'bio',
+                skills: 'skills',
+                'skills.json': 'skills',
+                frameworks: 'frameworks',
+                'frameworks.md': 'frameworks',
+                experience: 'experience',
+              };
+
+              const command = aboutMapping[second];
+              if (!command) {
+                return false;
+              }
+
+              executeCommand('about');
+              setTimeout(() => executeCommand(command), 0);
+              return true;
+            }
+
+            if (section === 'projects') {
+              if (!second) {
+                executeCommand('projects');
+                return true;
+              }
+
+              if (second === 'major' || second === 'minor') {
+                if (!third) {
+                  executeCommand('projects');
+                  setTimeout(() => executeCommand(second), 0);
+                  return true;
+                }
+
+                if (openProjectBySlug(third, second)) {
+                  return true;
+                }
+                return false;
+              }
+
+              if (openProjectBySlug(second)) {
+                return true;
+              }
+
+              return false;
+            }
+
+            if (section === 'contact') {
+              if (!second) {
+                executeCommand('contact');
+                return true;
+              }
+              return openContactByPath(second);
+            }
+
+            if (section === 'resume') {
+              if (!second || second === 'dylan_van_der_ven_resume.pdf') {
+                triggerResumeDownload();
+                return true;
+              }
+              return false;
+            }
+
+            return false;
+          };
+
+          if (normalizedTarget === '' || normalizedTarget === '/') {
+            executeCommand('home');
             return;
           }
 
-          // cd <section>
-          const validSections = ['home', 'about', 'projects', 'contact'];
-          if (validSections.includes(target)) {
-            executeCommand(target); // Reuse existing navigation logic
-            return;
-          } else {
-            addOutput(`cd: ${target}: No such section`, 'error');
+          const resolvedParts = resolvePathParts(target);
+          if (navigateToResolvedPath(resolvedParts)) {
             return;
           }
+
+          const fallbackSections = ['home', 'about', 'projects', 'contact'];
+          if (fallbackSections.includes(normalizedTarget)) {
+            executeCommand(normalizedTarget);
+            return;
+          }
+
+          addOutput(`cd: ${target}: No such file or directory`, 'error');
+          return;
         }
 
         // Check for social link commands (only in contact section)
@@ -1067,8 +1401,8 @@ Check your downloads folder.`);
           
           // Trigger download
           const link = document.createElement('a');
-          link.href = '/resume/Dylan_van_der_Ven_Resume.pdf';
-          link.download = 'Dylan_van_der_Ven_Resume.pdf';
+          link.href = '/resume/CV-Dylan.pdf';
+          link.download = 'CV-Dylan.pdf';
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -1265,6 +1599,59 @@ Check your downloads folder.`);
           return;
         }
 
+        if (trimmedCmd === 'neofetch') {
+          const sessionMinutes = Math.max(1, Math.floor((Date.now() - sessionStart) / 60000));
+          addOutput(` _   _  ____ _____
+| \\ | |/ ___|_   _|  OS: NST.v2 (NiSuTe Kernel)
+|  \\| |\\___ \\ | |    Host: Dylan's Portfolio
+| |\\  | ___) || |    Uptime: ${sessionMinutes} mins
+|_| \\_|____/ |_|     Shell: dsh (dylan-sh)
+                     Theme: ${currentTheme}
+                     Discord: ${discordActivity}`);
+          return;
+        }
+
+        if (trimmedCmd === 'backlog' || trimmedCmd.startsWith('backlog ')) {
+          const subcommand = trimmedCmd.split(' ')[1] ?? 'all';
+          const statusIcon: Record<'learning' | 'building' | 'researching' | 'done', string> = {
+            learning: '📚',
+            building: '🛠',
+            researching: '🔍',
+            done: '✅',
+          };
+
+          const formatBacklogItem = (item: typeof learningBacklog[number]) => {
+            return `[${item.id}] ${statusIcon[item.status]} ${item.topic}\n    Status: ${item.status.toUpperCase()} | Priority: ${item.priority.toUpperCase()} | ETA: ${item.eta}\n    Focus: ${item.focus}`;
+          };
+
+          let filteredItems = learningBacklog;
+          let title = 'LEARNING BACKLOG';
+
+          if (subcommand === 'next') {
+            const nextItem = learningBacklog.find((item) => item.status !== 'done');
+            filteredItems = nextItem ? [nextItem] : [];
+            title = 'BACKLOG - NEXT UP';
+          } else if (subcommand === 'focus') {
+            filteredItems = learningBacklog.filter((item) => item.priority === 'high' && item.status !== 'done');
+            title = 'BACKLOG - CURRENT FOCUS';
+          } else if (subcommand === 'done') {
+            filteredItems = learningBacklog.filter((item) => item.status === 'done');
+            title = 'BACKLOG - COMPLETED';
+          } else if (subcommand !== 'all') {
+            addOutput(`Invalid backlog option: ${subcommand}\nUse: backlog | backlog next | backlog focus | backlog done`, 'error');
+            return;
+          }
+
+          if (filteredItems.length === 0) {
+            addOutput(`${title}\n\nNo items found for this filter.`, 'error');
+            return;
+          }
+
+          const output = filteredItems.map(formatBacklogItem).join('\n\n');
+          addOutput(`${title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n${output}`);
+          return;
+        }
+
         // Debug mode
         if (trimmedCmd === 'debug on') {
           if (debugMode) {
@@ -1383,6 +1770,36 @@ Type 'debug off' to disable`;
     return 'status-project-offline'; // default
   };
 
+  const openProjectDetails = (category: ProjectCategory, projectIndex: number) => {
+    const projectList = category === 'major' ? majorProjects : minorProjects;
+    const project = projectList[projectIndex];
+
+    if (!project) {
+      addOutput('Project not found', 'error');
+      return;
+    }
+
+    setCurrentSection('projects');
+    setCurrentSubsection(`${category}-project-${projectIndex + 1}`);
+    clearHistory();
+
+    const commands = [
+      project.link ? '[1] github - Open GitHub repository' : '',
+      project.webapp ? '[2] webapp - Open live application' : ''
+    ].filter(Boolean).join('\n');
+
+    const statusClass = getProjectStatusClass(project.status);
+    const commandsSection = commands ? `\n\nCommands:\n${commands}` : '';
+
+    addOutput(`PROJECT: ${project.name}
+
+Description: ${project.description}
+Technologies: ${project.tech.join(', ')}
+Status: <span class="project-status-dot ${statusClass}"></span>${project.status}${project.link ? `\nGitHub: ${project.link}` : ''}${project.webapp ? `\nLive: ${project.webapp}` : ''}${commandsSection}
+
+Type 'back' to return`);
+  };
+
   const handleNumberInput = (num: number) => {
     if (currentSection === 'about') {
       if (num === 1) {
@@ -1440,7 +1857,7 @@ Type 'back' to return`);
       } else if (num === 4) {
         setCurrentSubsection('experience');
         clearHistory();
-        const experienceOutput = experienceData.map((exp, index) => {
+        const experienceOutput = experienceData.map((exp) => {
           const descriptions = exp.description.map(d => `    • ${d}`).join('\n');
           const techStack = `    Tech: ${exp.tech.join(', ')}`;
           return `
@@ -1477,23 +1894,7 @@ ${techStack}`;
         // In a category, selecting a project
         const projectList = currentSubsection === 'major' ? majorProjects : minorProjects;
         if (num >= 1 && num <= projectList.length) {
-          const project = projectList[num - 1];
-          setCurrentSubsection(`${currentSubsection}-project-${num}`);
-          clearHistory();
-          const commands = [
-            project.link ? '[1] github - Open GitHub repository' : '',
-            project.webapp ? '[2] webapp - Open live application' : ''
-          ].filter(Boolean).join('\n');
-          
-          const statusClass = getProjectStatusClass(project.status);
-          const commandsSection = commands ? `\n\nCommands:\n${commands}` : '';
-          addOutput(`PROJECT: ${project.name}
-
-Description: ${project.description}
-Technologies: ${project.tech.join(', ')}
-Status: <span class="project-status-dot ${statusClass}"></span>${project.status}${project.link ? `\nGitHub: ${project.link}` : ''}${project.webapp ? `\nLive: ${project.webapp}` : ''}${commandsSection}
-
-Type 'back' to return`);
+          openProjectDetails(currentSubsection, num - 1);
         }
       } else if (currentSubsection?.includes('-project-')) {
         // In a project detail view
@@ -1516,7 +1917,6 @@ Type 'back' to return`);
       if (num >= 1 && num <= contactData.length) {
         const contact = contactData[num - 1];
         handleCopy(contact.value, contact.label);
-        addOutput(`Copied ${contact.label}: ${contact.value}`);
       }
     } else if (currentSection === 'home') {
       if (num === 1) {
@@ -1645,12 +2045,122 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
     }
   }, [showTetris, showSnake]);
   
-  const handleLayoutClick = (e: React.MouseEvent) => {
+  const handleLayoutClick = () => {
     // Only focus input on desktop, not on mobile, and not when games are open
     if (window.innerWidth > 768 && !showTetris && !showSnake) {
       inputRef.current?.focus();
     }
   };
+
+  const selectedProject = useMemo<{ category: ProjectCategory; index: number; project: PortfolioProject } | null>(() => {
+    if (!currentSubsection || !currentSubsection.includes('-project-')) {
+      return null;
+    }
+
+    const [category, , projectNumStr] = currentSubsection.split('-');
+    if (category !== 'major' && category !== 'minor') {
+      return null;
+    }
+
+    const index = parseInt(projectNumStr, 10) - 1;
+    const projectList = category === 'major' ? majorProjects : minorProjects;
+    const project = projectList[index];
+
+    if (!project) {
+      return null;
+    }
+
+    return { category, index, project };
+  }, [currentSubsection]);
+  const sessionSeconds = Math.floor((systemNow.getTime() - sessionStart) / 1000);
+  const uptimeMinutes = Math.floor(sessionSeconds / 60);
+  const uptimeRemainderSeconds = sessionSeconds % 60;
+  const currentClock = systemNow.toLocaleTimeString('en-GB', { hour12: false });
+  const majorProjectSlugs = useMemo(
+    () => majorProjects.map((project) => createProjectSlug(project.name)),
+    []
+  );
+  const minorProjectSlugs = useMemo(
+    () => minorProjects.map((project) => createProjectSlug(project.name)),
+    []
+  );
+  const currentVirtualPathParts = useMemo(() => {
+    if (selectedProject) {
+      return ['home', 'dylan', 'projects', selectedProject.category, createProjectSlug(selectedProject.project.name)];
+    }
+
+    if (currentSection === 'home') {
+      return ['home', 'dylan'];
+    }
+
+    if (currentSection === 'about') {
+      if (currentSubsection === 'bio') return ['home', 'dylan', 'about', 'bio.txt'];
+      if (currentSubsection === 'skills') return ['home', 'dylan', 'about', 'skills.json'];
+      if (currentSubsection === 'frameworks') return ['home', 'dylan', 'about', 'frameworks.md'];
+      if (currentSubsection === 'experience') return ['home', 'dylan', 'about', 'experience'];
+      return ['home', 'dylan', 'about'];
+    }
+
+    if (currentSection === 'projects') {
+      if (currentSubsection === 'major') return ['home', 'dylan', 'projects', 'major'];
+      if (currentSubsection === 'minor') return ['home', 'dylan', 'projects', 'minor'];
+      return ['home', 'dylan', 'projects'];
+    }
+
+    if (currentSection === 'contact') {
+      return ['home', 'dylan', 'contact'];
+    }
+
+    return ['home', 'dylan'];
+  }, [currentSection, currentSubsection, selectedProject]);
+
+  const activeTreeNode = useMemo(() => {
+    if (selectedProject) {
+      return `${createProjectSlug(selectedProject.project.name)}/`;
+    }
+
+    if (currentSection === 'about') {
+      if (currentSubsection === 'bio') return 'bio.txt';
+      if (currentSubsection === 'skills') return 'skills.json';
+      if (currentSubsection === 'frameworks') return 'frameworks.md';
+    }
+
+    if (currentSection === 'projects') {
+      if (currentSubsection === 'major') return 'major/';
+      if (currentSubsection === 'minor') return 'minor/';
+    }
+
+    return `${currentSection}/`;
+  }, [currentSection, currentSubsection, selectedProject]);
+  const directoryTreeText = useMemo(() => `/
+├── home/
+│   └── dylan/
+│       ├── about/
+│       │   ├── bio.txt
+│       │   ├── skills.json
+│       │   └── frameworks.md
+│       ├── projects/
+│       │   ├── major/
+${formatTreeBranch(majorProjectSlugs, '│       │   │   ')}
+│       │   └── minor/
+${formatTreeBranch(minorProjectSlugs, '│       │       ')}
+│       ├── contact/
+│       │   ├── email.link
+│       │   ├── github.link
+│       │   ├── linkedin.link
+│       │   └── instagram.link
+│       └── resume/
+│           └── Dylan_van_der_Ven_Resume.pdf (installable)
+└── public/
+    └── portfolio.html`, [majorProjectSlugs, minorProjectSlugs]);
+
+  const directoryTreeHtml = useMemo(() => {
+    const escapedTreeNode = activeTreeNode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return directoryTreeText.replace(
+      new RegExp(escapedTreeNode),
+      `<span class="directory-active">${activeTreeNode}</span>`
+    );
+  }, [activeTreeNode, directoryTreeText]);
 
   return (
     <div className="terminal-layout" onClick={handleLayoutClick}>
@@ -1677,9 +2187,7 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
         <div className="terminal-content" ref={contentRef}>
           {/* Command History */}
           {history.map((line, index) => (
-            <div key={index} className={`history-line ${line.type}`}>
-              <pre dangerouslySetInnerHTML={{ __html: line.type === 'output' || line.type === 'error' ? applySyntaxHighlighting(line.content) : line.content }} />
-            </div>
+            <HistoryEntry key={index} line={line} />
           ))}
         </div>
 
@@ -1695,34 +2203,29 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
             placeholder={sudoMode ? '' : "Type 'help' for commands..."}
             autoComplete="off"
             spellCheck="false"
-            disabled={showTetris || showSnake}
+            disabled={showTetris || showSnake || showFake404}
           />
         </form>
         </div>
       </div>
       
       <div className="visual-panel">
-        <div className="visual-content">
-          <div className="stats-container">
-            <div className="stat-item">
-                <div className="stat-label">SYSTEM NAME</div>
-                <div className="stat-value">PORTFOLIO DYLAN</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-label">SYSTEM STATUS</div>
-              <div className="stat-value">ONLINE</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-label">CURRENT SECTION</div>
-              <div className="stat-value">{currentSection.toUpperCase()}</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-label">COMMANDS EXECUTED</div>
-              <div className="stat-value">{commandCount}</div>
-            </div>
-          </div>
+        <div className="visual-content diagnostics-panel">
+          <div className="diag-row"><span>Current Time: </span><strong>{currentClock}</strong></div>
+          <div className="diag-row"><span>Section: </span><strong>{currentSection.toUpperCase()}</strong></div>
+          <div className="diag-row"><span>Commands: </span><strong>{commandCount}</strong></div>
         </div>
-        
+
+        <div className="visual-content directory-panel">
+          <pre className="directory-tree" dangerouslySetInnerHTML={{ __html: directoryTreeHtml }} />
+        </div>
+        <div className="visual-content load-panel">
+          <div className="diag-row"><span>Uptime </span><strong>{uptimeMinutes}m {uptimeRemainderSeconds}s</strong></div>
+          <div className="load-row"><span>CPU</span><span>{cpuLoad}%</span></div>
+          <div className="load-bar"><div className="load-fill" style={{ width: `${cpuLoad}%` }} /></div>
+          <div className="load-row"><span>Memory</span><span>{memoryLoad}%</span></div>
+          <div className="load-bar"><div className="load-fill memory" style={{ width: `${memoryLoad}%` }} /></div>
+        </div>
         <div className="visual-content2">
           <div className="activity-status">
             <div className="activity-header">CURRENT ACTIVITY</div>
@@ -1736,6 +2239,15 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
           </div>
         </div>
       </div>
+
+      {showFake404 && (
+        <div className="fake-404-screen" role="alert" aria-live="assertive">
+          <div className="fake-404-content">
+            <h1>404 | Page not found</h1>
+            <p>Contact the developer at: <a href={`mailto:${developerEmail}`}>{developerEmail}</a></p>
+          </div>
+        </div>
+      )}
       
       {showTetris && <Tetris onClose={() => setShowTetris(false)} />}
       {showSnake && <Snake onClose={() => setShowSnake(false)} />}

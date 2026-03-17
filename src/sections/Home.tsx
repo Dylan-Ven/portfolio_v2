@@ -20,20 +20,30 @@ export default function Home() {
     return `
     NST.v2 // NiSuTe SYSTEMS ARCHITECTURE
     [NODE: ${serverNumber}]
-    >SET TERMINAL/INQUIRE
-    >UUID: ${}
+    >UUID: ${fakeUUID}
+    PROPERTY OF NISUTE EUROPE MEDIA LABS // EST. 199X
 
->SET FILE/PROTECTION=OWNER:RWED ACCOUNTS.F
->SET HALT RESTART/MAINT
+    > QUERY CONSOLE /SYNC
 
-RETROS BIOS
-${biosVersion} ${serialCode}
-Copyright 2201-2203 Robco Ind.
-Uppermem: ${memorySize} KB
-Root (${rootCode})
-Maintenance Mode
+    NST-M800 "LENSMASTER"
 
->RUN DEBUG/ACCOUNTS.F`;
+    > GRANT PERM /LEVEL:ROOT /USER:ADMIN
+    Logic-Gate: OPEN. [RWED] privileges assigned to ADMIN.
+
+    > ABORT RECOVERY /STATE:HOLD
+    Automatic reboot cicles: SUSPENDED. System in static state. Awaiting further instructions.
+
+    NIS-TECH FIRMWARE (c) 2201-2203
+    CORE-BUILD: ${biosVersion} // UNIT: ${serialCode}
+    UPPER-STACK: ${memorySize} GB
+    IDENT: ${rootCode}
+    STATUS: [MAINTENANCE OVERRIDE ACTIVE]
+    !! NOTICE: DIRECT DATA-STREAM ACCESS ACTIVE. PARITY CHECKS DISABLED. !!
+
+    > LAUNCH TRACE /MAP:ACCOUNTS.F
+    Scrubbing Bit-Map...
+    Injecting Override...
+    Console Ready.`;
   }, []);
 
   useEffect(() => {
