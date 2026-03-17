@@ -16,16 +16,6 @@ const SHAPES = {
   L: [[0, 0, 1], [1, 1, 1]]
 };
 
-const COLORS = {
-  I: '#00f0f0',
-  O: '#f0f000',
-  T: '#a000f0',
-  S: '#00f000',
-  Z: '#f00000',
-  J: '#0000f0',
-  L: '#f0a000'
-};
-
 type ShapeType = keyof typeof SHAPES;
 type Piece = {
   shape: number[][];
@@ -93,7 +83,7 @@ export default function Tetris({ onClose }: TetrisProps) {
     return clockwise ? rotated.map(row => row.reverse()) : rotated.reverse();
   };
 
-  const isValidMove = (piece: Piece, newX: number, newY: number, newShape?: number[][]): boolean => {
+  const isValidMove = useCallback((piece: Piece, newX: number, newY: number, newShape?: number[][]): boolean => {
     const shape = newShape || piece.shape;
     for (let y = 0; y < shape.length; y++) {
       for (let x = 0; x < shape[y].length; x++) {
@@ -112,7 +102,7 @@ export default function Tetris({ onClose }: TetrisProps) {
       }
     }
     return true;
-  };
+  }, [board]);
 
   const mergePiece = useCallback(() => {
     if (!currentPiece) return;
@@ -165,7 +155,7 @@ export default function Tetris({ onClose }: TetrisProps) {
     } else {
       setCurrentPiece(newPiece);
     }
-  }, [currentPiece, board, createPiece]);
+  }, [currentPiece, board, createPiece, isValidMove, lastRotationWasKick]);
 
   const movePiece = useCallback((dx: number, dy: number) => {
     if (!currentPiece || gameOver || isPaused) return;
@@ -182,7 +172,7 @@ export default function Tetris({ onClose }: TetrisProps) {
     } else if (dy > 0) {
       mergePiece();
     }
-  }, [currentPiece, gameOver, isPaused, mergePiece]);
+  }, [currentPiece, gameOver, isPaused, isValidMove, mergePiece]);
 
   const rotate = useCallback((clockwise: boolean) => {
     if (!currentPiece || gameOver || isPaused) return;
@@ -228,7 +218,7 @@ export default function Tetris({ onClose }: TetrisProps) {
         return;
       }
     }
-  }, [currentPiece, gameOver, isPaused]);
+  }, [currentPiece, gameOver, isPaused, isValidMove]);
 
   const holdPiece = useCallback(() => {
     if (!currentPiece || !canHold || gameOver || isPaused) return;
@@ -305,7 +295,7 @@ export default function Tetris({ onClose }: TetrisProps) {
         setCurrentPiece(newPiece);
       }
     }, 50);
-  }, [currentPiece, board, gameOver, isPaused, createPiece]);
+  }, [currentPiece, board, gameOver, isPaused, createPiece, isValidMove]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {

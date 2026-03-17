@@ -17,7 +17,6 @@ interface SnakeProps {
 
 export default function Snake({ onClose }: SnakeProps) {
   const [snake, setSnake] = useState<Position[]>(INITIAL_SNAKE);
-  const [direction, setDirection] = useState<Direction>(INITIAL_DIRECTION);
   const [food, setFood] = useState<Position>({ x: 15, y: 15 });
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -38,7 +37,6 @@ export default function Snake({ onClose }: SnakeProps) {
 
   const resetGame = useCallback(() => {
     setSnake(INITIAL_SNAKE);
-    setDirection(INITIAL_DIRECTION);
     directionRef.current = INITIAL_DIRECTION;
     setFood({ x: 15, y: 15 });
     setScore(0);
@@ -137,7 +135,6 @@ export default function Snake({ onClose }: SnakeProps) {
       }
 
       directionRef.current = newDirection;
-      setDirection(newDirection);
     };
 
     window.addEventListener('keydown', handleKeyPress);
