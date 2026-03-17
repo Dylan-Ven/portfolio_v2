@@ -15,8 +15,8 @@ export default function Home() {
     const rootCode = Math.floor(Math.random() * 9000) + 1000;
     const serialCode = `52EE5.E${Math.floor(Math.random() * 9) + 1}.E${Math.floor(Math.random() * 9) + 1}`;
     
-    return `ROBCO INDUSTRIES UNIFIED OPERATING SYSTEM
-COPYRIGHT 2075-2077 ROBCO INDUSTRIES
+    return `NST.v2 OPERATING SYSTEM
+COPYRIGHT 2026-2028 
 -Server ${serverNumber}-
 
 >SET TERMINAL/INQUIRE
