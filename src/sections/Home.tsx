@@ -9,12 +9,30 @@ export default function Home() {
   
   // Generate random values for boot sequence (only once)
   const bootText = useMemo(() => {
+    const cryptoApi = globalThis.crypto;
+    const generateSecureUUID = () => {
+      if (cryptoApi?.randomUUID) {
+        return cryptoApi.randomUUID();
+      }
+
+      if (cryptoApi?.getRandomValues) {
+        const bytes = new Uint8Array(16);
+        cryptoApi.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+
+      return '00000000-0000-4000-8000-000000000000';
+    };
+
     const serverNumber = Math.floor(Math.random() * 25) + 1;
     const biosVersion = `RBIOS-4.02.08.${String(Math.floor(Math.random() * 99) + 1).padStart(2, '0')}`;
     const memorySize = [32, 64, 128, 256][Math.floor(Math.random() * 4)];
     const rootCode = Math.floor(Math.random() * 9000) + 1000;
     const serialCode = `52EE5.E${Math.floor(Math.random() * 9) + 1}.E${Math.floor(Math.random() * 9) + 1}`;
-    const fakeUUID = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); });
+    const fakeUUID = generateSecureUUID();
 
     
     return `

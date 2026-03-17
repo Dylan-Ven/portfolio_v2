@@ -34,40 +34,27 @@ const AVAILABLE_COMMANDS = [
   'copy', 'open', 'tetris', 'snake'
 ] as const;
 
-const applySyntaxHighlighting = (value: string): string => {
-  let text = value;
+const buildHomeOutput = (activity: string): string => `  ____            _    __       _ _
+ |  _ \\ ___  _ __| |_ / _| ___ | (_) ___
+ | |_) / _ \\| '__| __| |_ / _ \\| | |/ _ \\
+ |  __/ (_) | |  | |_|  _| (_) | | | (_) |
+ |_|   \\___/|_|   \\__|_|  \\___/|_|_|\\___/
 
-  text = text.replace(/\[(\d+)\]/g, '<span class="syntax-bracket">[</span><span class="syntax-number">$1</span><span class="syntax-bracket">]</span>');
+PORTFOLIO v2.0
 
-  text = text.replace(/\[([█░]+)\]\s+([1-5])\/5/g, (_match, bar, level) => {
-    const levelNum = parseInt(level, 10);
-    let color = '';
-    if (levelNum === 1) color = '#8b0000';
-    else if (levelNum === 2) color = '#cc0000';
-    else if (levelNum === 3) color = '#ffcc00';
-    else if (levelNum === 4) color = '#90ee90';
-    else if (levelNum === 5) color = '#00cc00';
-    return `<span style="color: ${color}">[${bar}] ${level}/5</span>`;
-  });
+DYLAN VAN DER VEN
+Full-Stack Developer & UI/UX Designer
+Status: ${activity}
 
-  text = text.replace(/(✓|✅|SUCCESS|successful|Downloaded|completed|enabled|disabled)/gi, '<span class="syntax-success">$1</span>');
-  text = text.replace(/(ERROR|FAILED|undefined|No such)/gi, '<span class="syntax-error">$1</span>');
-  text = text.replace(/(https?:\/\/[^\s]+)/g, '<span class="syntax-link">$1</span>');
-  text = text.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<span class="syntax-link">$1</span>');
-  text = text.replace(/(📦|⠋|🔗)/g, '<span class="syntax-highlight">$1</span>');
-  text = text.replace(/^(\s*)(help|clear|home|about|projects|contact|back|ls|cd|npm|github|linkedin|email|instagram|typing|theme|themes|sound|tree|experience|copy|open|crt|debug|prompt|stats|neofetch|backlog)(\s)/gm, '$1<span class="syntax-command">$2</span>$3');
-
-  return text;
-};
+Navigate to:
+[1] about    - Learn about me
+[2] projects - View my work
+[3] contact  - Get in touch`;
 
 const HistoryEntry = memo(function HistoryEntry({ line }: { line: TerminalLine }) {
-  const content = line.type === 'output' || line.type === 'error'
-    ? applySyntaxHighlighting(line.content)
-    : line.content;
-
   return (
     <div className={`history-line ${line.type}`}>
-      <pre dangerouslySetInnerHTML={{ __html: content }} />
+      <pre>{line.content}</pre>
     </div>
   );
 });
@@ -188,23 +175,7 @@ export default function Terminal() {
         // Show home content after boot
         setHistory([{
           type: 'output',
-          content: `<span class="ascii-desktop">  ____            _    __       _ _       
- |  _ \\ ___  _ __| |_ / _| ___ | (_) ___  
- | |_) / _ \\| '__| __| |_ / _ \\| | |/ _ \\ 
- |  __/ (_) | |  | |_|  _| (_) | | | (_) |
- |_|   \\___/|_|   \\__|_|  \\___/|_|_|\\___/ </span><span class="ascii-mobile">
-━━━━━━━━━━━━━━━━━━━━━━
-   PORTFOLIO v2.0
-━━━━━━━━━━━━━━━━━━━━━━</span>
-
-DYLAN VAN DER VEN
-Full-Stack Developer & UI/UX Designer
-Status: ${discordActivity}
-
-Navigate to:
-[1] about    - Learn about me
-[2] projects - View my work
-[3] contact  - Get in touch`
+          content: buildHomeOutput(discordActivity)
         }]);
       };
       
@@ -213,23 +184,7 @@ Navigate to:
       // Skip boot sequence if already booted
       setHistory([{
         type: 'output',
-        content: `<span class="ascii-desktop">  ____            _    __       _ _       
- |  _ \\ ___  _ __| |_ / _| ___ | (_) ___  
- | |_) / _ \\| '__| __| |_ / _ \\| | |/ _ \\ 
- |  __/ (_) | |  | |_|  _| (_) | | | (_) |
- |_|   \\___/|_|   \\__|_|  \\___/|_|_|\\___/ </span><span class="ascii-mobile">
-━━━━━━━━━━━━━━━━━━━━━━
-   PORTFOLIO v2.0
-━━━━━━━━━━━━━━━━━━━━━━</span>
-
-DYLAN VAN DER VEN
-Full-Stack Developer & UI/UX Designer
-Status: ${discordActivity}
-
-Navigate to:
-[1] about    - Learn about me
-[2] projects - View my work
-[3] contact  - Get in touch`
+        content: buildHomeOutput(discordActivity)
       }]);
     }
     
@@ -812,23 +767,7 @@ Navigate to:
         showLoading(() => {
           clearHistory();
           showHomeContent();
-          addOutput(`<span class="ascii-desktop">  ____            _    __       _ _       
- |  _ \\ ___  _ __| |_ / _| ___ | (_) ___  
- | |_) / _ \\| '__| __| |_ / _ \\| | |/ _ \\ 
- |  __/ (_) | |  | |_|  _| (_) | | | (_) |
- |_|   \\___/|_|   \\__|_|  \\___/|_|_|\\___/ </span><span class="ascii-mobile">
-━━━━━━━━━━━━━━━━━━━━━━
-   PORTFOLIO v2.0
-━━━━━━━━━━━━━━━━━━━━━━</span>
-
-DYLAN VAN DER VEN
-Full-Stack Developer & UI/UX Designer
-Status: ${discordActivity}
-
-Navigate to:
-[1] about    - Learn about me
-[2] projects - View my work
-[3] contact  - Get in touch`);
+          addOutput(buildHomeOutput(discordActivity));
         });
         break;
 
@@ -1761,15 +1700,6 @@ Type 'debug off' to disable`;
     }
   };
 
-  const getProjectStatusClass = (status: string): string => {
-    const lowerStatus = status.toLowerCase();
-    if (lowerStatus.includes('online')) return 'status-project-online';
-    if (lowerStatus.includes('development') || lowerStatus.includes('in development')) return 'status-project-development';
-    if (lowerStatus.includes('offline')) return 'status-project-offline';
-    if (lowerStatus.includes('private')) return 'status-project-private';
-    return 'status-project-offline'; // default
-  };
-
   const openProjectDetails = (category: ProjectCategory, projectIndex: number) => {
     const projectList = category === 'major' ? majorProjects : minorProjects;
     const project = projectList[projectIndex];
@@ -1788,14 +1718,13 @@ Type 'debug off' to disable`;
       project.webapp ? '[2] webapp - Open live application' : ''
     ].filter(Boolean).join('\n');
 
-    const statusClass = getProjectStatusClass(project.status);
     const commandsSection = commands ? `\n\nCommands:\n${commands}` : '';
 
     addOutput(`PROJECT: ${project.name}
 
 Description: ${project.description}
 Technologies: ${project.tech.join(', ')}
-Status: <span class="project-status-dot ${statusClass}"></span>${project.status}${project.link ? `\nGitHub: ${project.link}` : ''}${project.webapp ? `\nLive: ${project.webapp}` : ''}${commandsSection}
+Status: ● ${project.status}${project.link ? `\nGitHub: ${project.link}` : ''}${project.webapp ? `\nLive: ${project.webapp}` : ''}${commandsSection}
 
 Type 'back' to return`);
   };
