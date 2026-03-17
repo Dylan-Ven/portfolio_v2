@@ -457,6 +457,117 @@ export default function Terminal() {
     setCurrentSubsection(null);
   };
 
+  const getHelpOutput = (): string => {
+    const globalCommands = [
+      'GLOBAL COMMANDS:',
+      '  help       - Show commands for this section',
+      '  clear      - Clear terminal output',
+      '  home       - Go to home section',
+      '  about      - Go to about section',
+      '  projects   - Go to projects section',
+      '  contact    - Go to contact section',
+      '  stats      - Show session statistics',
+      '  neofetch   - Show system profile panel',
+      '  backlog    - Show current learning backlog',
+      '  backlog next/focus/done - Filter learning backlog',
+      '  debug on/off - Toggle debug mode',
+      '  prompt set <text> - Set custom prompt',
+      '  prompt reset - Reset prompt to default',
+      '  git push   - Push current branch to remote',
+      '  npm install resume - Download resume',
+      '  npm i resume       - Download resume (shorthand)',
+      '  typing on/off - Toggle typing effect animation',
+      '  theme <name> - Change color theme',
+      '  themes     - List all available themes',
+      '  sound on/off - Toggle terminal sound effects',
+      '  crt on/off - Toggle CRT screen effect',
+      '  tree       - Display directory structure',
+      '  ls         - Alias for projects',
+      '  cd <section|path> - Navigate virtual sections/paths',
+      '  tetris     - Launch Tetris',
+      '  snake      - Launch Snake',
+      '',
+      'EASTER EGGS:',
+      "  matrix, hack, coffee, sudo, whoami, ping, fortune, joke, secret",
+    ];
+
+    const sectionCommands: string[] = [];
+
+    if (currentSection === 'home') {
+      sectionCommands.push(
+        'SECTION COMMANDS (HOME):',
+        '  [1] / about    - Open about section',
+        '  [2] / projects - Open projects section',
+        '  [3] / contact  - Open contact section',
+      );
+    }
+
+    if (currentSection === 'about') {
+      sectionCommands.push('SECTION COMMANDS (ABOUT):');
+
+      if (!currentSubsection) {
+        sectionCommands.push(
+          '  bio        - View biography',
+          '  skills     - View technical skills',
+          '  frameworks - View frameworks & libraries',
+          '  experience - View work experience',
+          '  [1-4]      - Use number shortcuts',
+        );
+      } else {
+        sectionCommands.push(
+          `  Current subsection: ${currentSubsection}`,
+          '  back       - Return to about menu',
+        );
+      }
+    }
+
+    if (currentSection === 'projects') {
+      sectionCommands.push('SECTION COMMANDS (PROJECTS):');
+
+      if (!currentSubsection) {
+        sectionCommands.push(
+          '  major      - View major projects',
+          '  minor      - View minor projects',
+          '  [1-2]      - Use number shortcuts',
+        );
+      } else if (currentSubsection === 'major' || currentSubsection === 'minor') {
+        const projectList = currentSubsection === 'major' ? majorProjects : minorProjects;
+        sectionCommands.push(
+          `  Current category: ${currentSubsection}`,
+          `  [1-${projectList.length}] - Open a project`,
+          '  back       - Return to project categories',
+        );
+      } else if (currentSubsection.includes('-project-')) {
+        const [category, , projectNumStr] = currentSubsection.split('-');
+        const projectList = category === 'major' ? majorProjects : minorProjects;
+        const project = projectList[parseInt(projectNumStr, 10) - 1];
+
+        sectionCommands.push('  back       - Return to the project list');
+
+        if (project?.link) {
+          sectionCommands.push('  github     - Open GitHub repository');
+        }
+
+        if (project?.webapp) {
+          sectionCommands.push('  webapp     - Open live application');
+        }
+      }
+    }
+
+    if (currentSection === 'contact') {
+      sectionCommands.push(
+        'SECTION COMMANDS (CONTACT):',
+        '  github     - Open GitHub profile',
+        '  linkedin   - Open LinkedIn profile',
+        '  email      - Open email client',
+        '  instagram  - Open Instagram profile',
+        `  [1-${contactData.length}]      - Copy contact info`,
+      );
+    }
+
+    return [...globalCommands, '', ...sectionCommands].join('\n');
+  };
+
   const createProjectSlug = (value: string): string => {
     return value
       .toLowerCase()
@@ -713,49 +824,7 @@ export default function Terminal() {
     // Command routing
     switch (trimmedCmd) {
       case 'help':
-        addOutput(`AVAILABLE COMMANDS:
-  help       - Show this help message
-  clear      - Clear terminal output
-  home       - Go to home section
-  about      - Go to about section
-  projects   - Go to projects section
-  contact    - Go to contact information
-  back       - Go back to previous section
-  stats      - Show session statistics
-  neofetch   - Show system profile panel
-  backlog    - Show current learning backlog
-  backlog next/focus/done - Filter learning backlog
-  debug on/off - Toggle debug mode
-  prompt set <text> - Set custom prompt
-  prompt reset - Reset prompt to default
-  git push   - Push current branch to remote
-  npm install resume - Download resume
-  npm i resume       - Download resume (shorthand)
-  typing on/off - Toggle typing effect animation
-  theme <name> - Change color theme
-  themes     - List all available themes
-  sound on/off - Toggle terminal sound effects
-  crt on/off - Toggle CRT screen effect
-  tree       - Display directory structure
-  
-  CONTACT COMMANDS (available in contact section):
-  github     - Open GitHub profile
-  linkedin   - Open LinkedIn profile
-  email      - Open email client
-  instagram  - Open Instagram profile
-  
-  ALIASES:
-  ls         - Alias for 'projects'
-  cd <section> - Navigate to section (e.g., cd about)
-  cd projects/<slug> - Open specific project directly
-  cd ..      - Alias for 'back'
-  
-  EASTER EGGS: Try 'matrix', 'hack', 'coffee', 'sudo', 'whoami', 'ping', 'fortune', 'joke', 'secret'
-  GAMES: 'tetris', 'snake'
-  
-  GAMES: 'tetris' or 'play tetris'
-  
-  In each section, type a number (1-9) or command to access subsections`);
+        addOutput(getHelpOutput());
         break;
 
       case 'clear':
