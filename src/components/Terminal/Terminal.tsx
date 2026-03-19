@@ -2,6 +2,7 @@
 import dynamic from 'next/dynamic';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { projectsData, majorProjects, minorProjects, skillsData, contactData, experienceData, learningBacklog } from '@/data/portfolio';
+import { AVAILABLE_COMMANDS, VALID_THEMES, normalizeCommandInput, resolveExactCommand, sanitizeCommandInput, type ExactCommandId } from './commandCatalog';
 import './Terminal.css';
 
 type Section = 'home' | 'about' | 'projects' | 'contact';
@@ -23,16 +24,6 @@ const Snake = dynamic(() => import('@/components/Snake/Snake'), {
   ssr: false,
   loading: () => null,
 });
-
-const AVAILABLE_COMMANDS = [
-  'help', 'clear', 'home', 'about', 'bio', 'skills', 'frameworks',
-  'experience', 'projects', 'contact', 'back', 'themes', 'tree',
-  'typing', 'sound', 'theme', 'ls', 'cd', 'github', 'linkedin',
-  'email', 'instagram', 'npm', 'matrix', 'hack', 'coffee', 'sudo',
-  'whoami', 'ping', 'fortune', 'joke', 'secret', 'stats', 'debug', 'prompt', 'crt',
-  'neofetch', 'backlog',
-  'copy', 'open', 'tetris', 'snake'
-] as const;
 
 const buildHomeOutput = (activity: string): string => `  ____            _    __       _ _
  |  _ \\ ___  _ __| |_ / _| ___ | (_) ___
@@ -879,68 +870,10 @@ export default function Terminal() {
     ];
   };
 
-  const executeCommand = (cmd: string) => {
-    const trimmedCmd = cmd.trim().toLowerCase();
-    
-    // Handle sudo password mode
-    if (sudoMode) {
-      setSudoMode(false);
-      addInput('*'.repeat(cmd.length)); // Show asterisks instead of actual input
-      addOutputWithDelay([
-        'Authentication successful.',
-        'Checking system privileges...',
-        'Warning: You now have root access to absolutely nothing.',
-        'sudo: Nice try though.'
-      ]);
-      return;
-    }
-    
-    addInput(cmd);
-    setCommandHistory(prev => [...prev, cmd]);
-    setHistoryIndex(-1);
-    playBeep(); // Play sound on command execution
-
-    // Track stats
-    setCommandCount(prev => prev + 1);
-    setCommandFrequency(prev => {
-      const newMap = new Map(prev);
-      newMap.set(trimmedCmd, (newMap.get(trimmedCmd) || 0) + 1);
-      return newMap;
-    });
-
-    if (!trimmedCmd) return;
-
-    // Check for number input (1-9)
-    if (/^[1-9]$/.test(trimmedCmd)) {
-      handleNumberInput(parseInt(trimmedCmd));
-      return;
-    }
-
-    // Command routing
-    switch (trimmedCmd) {
-      case 'help':
-        addOutput(getHelpOutput());
-        break;
-
-      case 'clear':
-        clearHistory();
-        break;
-
-      case 'home':
-        setSectionsVisited(prev => new Set(prev).add('home'));
-        showLoading(() => {
-          clearHistory();
-          showHomeContent();
-          addOutput(buildHomeOutput(discordActivity));
-        });
-        break;
-
-      case 'about':
-        setSectionsVisited(prev => new Set(prev).add('about'));
-        showLoading(() => {
-          clearHistory();
-          showAboutMenu();
-          addOutput(`ABOUT DYLAN VAN DER VEN
+  const showAboutOverview = () => {
+    clearHistory();
+    showAboutMenu();
+    addOutput(`ABOUT DYLAN VAN DER VEN
 
 [1] bio        - About me
 [2] skills     - Technical skills (with levels)
@@ -948,14 +881,12 @@ export default function Terminal() {
 [4] experience - Work history & timeline
 
 Type a number or command to view`);
-        });
-        break;
+  };
 
-      case 'bio':
-        if (currentSection === 'about') {
-          setCurrentSubsection('bio');
-          clearHistory();
-          addOutput(`BIOGRAPHY
+  const showBioContent = () => {
+    setCurrentSubsection('bio');
+    clearHistory();
+    addOutput(`BIOGRAPHY
 
 I'm a passionate fullstack developer and designer with a love for creating
 immersive digital experiences. I specialize in building modern web applications
@@ -971,158 +902,119 @@ CURRENTLY:
 - Building experimental web experiences
 
 Type 'back' to return`);
-        } else {
-          addOutput('undefined', 'error');
-        }
-        break;
+  };
 
-      case 'skills':
-        if (currentSection === 'about') {
-          setCurrentSubsection('skills');
-          clearHistory();
-          
-          const getProgressBar = (level: number) => {
-            const filled = '█'.repeat(level);
-            const empty = '░'.repeat(5 - level);
-            return filled + empty;
-          };
-          
-          const skillsOutput = Object.entries(skillsData).map(([category, items]) => {
-            const skillsList = (items as Array<{name: string, level: number}>).map(skill => {
-              const bar = getProgressBar(skill.level);
-              return `  ${skill.name.padEnd(20)} [${bar}] ${skill.level}/5`;
-            }).join('\n');
-            return `[${category.toUpperCase()}]\n${skillsList}`;
-          }).join('\n\n');
-          
-          addOutput(`TECHNICAL SKILLS\n\n${skillsOutput}\n\nLegend: █ = Proficient, ░ = Learning\nColors: Red (1-2), Yellow (3), Light Green (4), Dark Green (5)\n\nType 'back' to return`);
-        } else {
-          addOutput('undefined', 'error');
-        }
-        break;
+  const showSkillsContent = () => {
+    setCurrentSubsection('skills');
+    clearHistory();
 
-      case 'frameworks':
-        if (currentSection === 'about') {
-          setCurrentSubsection('frameworks');
-          clearHistory();
-          const frontendList = skillsData.frontend.map((s) => s.name).join(', ');
-          const backendList = skillsData.backend.map((s) => s.name).join(', ');
-          const toolsList = skillsData.tools.map((s) => s.name).join(', ');
-          addOutput(`FRAMEWORKS & LIBRARIES
+    const getProgressBar = (level: number) => {
+      const filled = '█'.repeat(level);
+      const empty = '░'.repeat(5 - level);
+      return filled + empty;
+    };
+
+    const skillsOutput = Object.entries(skillsData).map(([category, items]) => {
+      const skillsList = (items as Array<{name: string, level: number}>).map(skill => {
+        const bar = getProgressBar(skill.level);
+        return `  ${skill.name.padEnd(20)} [${bar}] ${skill.level}/5`;
+      }).join('\n');
+      return `[${category.toUpperCase()}]\n${skillsList}`;
+    }).join('\n\n');
+
+    addOutput(`TECHNICAL SKILLS\n\n${skillsOutput}\n\nLegend: █ = Proficient, ░ = Learning\nColors: Red (1-2), Yellow (3), Light Green (4), Dark Green (5)\n\nType 'back' to return`);
+  };
+
+  const showFrameworksContent = () => {
+    setCurrentSubsection('frameworks');
+    clearHistory();
+    const frontendList = skillsData.frontend.map((skill) => skill.name).join(', ');
+    const backendList = skillsData.backend.map((skill) => skill.name).join(', ');
+    const toolsList = skillsData.tools.map((skill) => skill.name).join(', ');
+    addOutput(`FRAMEWORKS & LIBRARIES
 
 Frontend: ${frontendList}
 Backend: ${backendList}
 Tools: ${toolsList}
 
 Type 'back' to return`);
-        } else {
-          addOutput('undefined', 'error');
-        }
-        break;
+  };
 
-      case 'experience':
-        if (currentSection === 'about') {
-          setCurrentSubsection('experience');
-          clearHistory();
-          const experienceOutput = experienceData.map((exp) => {
-            const descriptions = exp.description.map(d => `    • ${d}`).join('\n');
-            const techStack = `    Tech: ${exp.tech.join(', ')}`;
-            return `
-[█] ${exp.title}
-    ${exp.company} | ${exp.location}
-    ${exp.period}
+  const showExperienceContent = () => {
+    setCurrentSubsection('experience');
+    clearHistory();
+    const experienceOutput = experienceData.map((experience) => {
+      const descriptions = experience.description.map((description) => `    • ${description}`).join('\n');
+      const techStack = `    Tech: ${experience.tech.join(', ')}`;
+      return `
+[█] ${experience.title}
+    ${experience.company} | ${experience.location}
+    ${experience.period}
 
 ${descriptions}
 ${techStack}`;
-          }).join('\n\n');
-          addOutput(`WORK EXPERIENCE${experienceOutput}\n\nType 'back' to return`);
-        } else {
-          addOutput('undefined', 'error');
-        }
-        break;
+    }).join('\n\n');
 
-      case 'projects':
-        setSectionsVisited(prev => new Set(prev).add('projects'));
-        showLoading(() => {
-          clearHistory();
-          showProjectsMenu();
-          addOutput(`PROJECTS
+    addOutput(`WORK EXPERIENCE${experienceOutput}\n\nType 'back' to return`);
+  };
+
+  const showProjectsOverview = () => {
+    clearHistory();
+    showProjectsMenu();
+    addOutput(`PROJECTS
 
 [1] major   - Major projects (${majorProjects.length})
 [2] minor   - Minor projects (${minorProjects.length})
 
 Type a number or 'major'/'minor' to view category`);
-        });
-        break;
+  };
 
-      case 'major':
-        if (currentSection === 'projects') {
-          setCurrentSubsection('major');
-          clearHistory();
-          const majorList = majorProjects.map((p, i) => 
-            `[${i + 1}] ${p.name}`
-          ).join('\n');
-          addOutput(`MAJOR PROJECTS\n\n${majorList}\n\nType a number (1-${majorProjects.length}) to view details`);
-        } else {
-          addOutput('undefined', 'error');
-        }
-        break;
+  const showProjectsAliasListing = () => {
+    clearHistory();
+    setCurrentSection('projects');
+    setCurrentSubsection(null);
+    const projectsList = projectsData.map((project, index) =>
+      `[${index + 1}] ${project.name} - ${project.description}`
+    ).join('\n');
+    addOutput(`PROJECTS\n\n${projectsList}\n\nType a number (1-${projectsData.length}) to view details`);
+  };
 
-      case 'minor':
-        if (currentSection === 'projects') {
-          setCurrentSubsection('minor');
-          clearHistory();
-          const minorList = minorProjects.map((p, i) => 
-            `[${i + 1}] ${p.name}`
-          ).join('\n');
-          addOutput(`MINOR PROJECTS\n\n${minorList}\n\nType a number (1-${minorProjects.length}) to view details`);
-        } else {
-          addOutput('undefined', 'error');
-        }
-        break;
+  const showMajorProjectsList = () => {
+    if (currentSection !== 'projects') {
+      addOutput('undefined', 'error');
+      return;
+    }
 
-      case 'back':
-        if (currentSubsection) {
-          // If in a subsection, go back to main section
-          setCurrentSubsection(null);
-          if (currentSection === 'about') {
-            clearHistory();
-            addOutput(`ABOUT DYLAN VAN DER VEN
+    setCurrentSubsection('major');
+    clearHistory();
+    const majorList = majorProjects.map((project, index) => `[${index + 1}] ${project.name}`).join('\n');
+    addOutput(`MAJOR PROJECTS\n\n${majorList}\n\nType a number (1-${majorProjects.length}) to view details`);
+  };
 
-[1] bio        - About me
-[2] skills     - Technical skills (with levels)
-[3] frameworks - Frameworks & libraries
-[4] experience - Work history & timeline
+  const showMinorProjectsList = () => {
+    if (currentSection !== 'projects') {
+      addOutput('undefined', 'error');
+      return;
+    }
 
-Type a number or command to view`);
-          } else if (currentSection === 'projects') {
-            clearHistory();
-            addOutput(`PROJECTS
+    setCurrentSubsection('minor');
+    clearHistory();
+    const minorList = minorProjects.map((project, index) => `[${index + 1}] ${project.name}`).join('\n');
+    addOutput(`MINOR PROJECTS\n\n${minorList}\n\nType a number (1-${minorProjects.length}) to view details`);
+  };
 
-[1] major   - Major projects (${majorProjects.length})
-[2] minor   - Minor projects (${minorProjects.length})
+  const showContactOverview = () => {
+    clearHistory();
+    showContactMenu();
+    const contactOutput = contactData.map((contact, index) => {
+      let line = `[${index + 1}] ${contact.label.padEnd(10)} ${contact.value}`;
+      if (contact.label === 'EMAIL') {
+        line += '  ⚠ Slow response';
+      }
+      return line;
+    }).join('\n');
 
-Type a number or 'major'/'minor' to view category`);
-          }
-        } else {
-          addOutput('Already at main section. Type a section name to navigate.', 'error');
-        }
-        break;
-
-      case 'contact':
-        setSectionsVisited(prev => new Set(prev).add('contact'));
-        showLoading(() => {
-          clearHistory();
-          showContactMenu();
-          const contactOutput = contactData.map((contact, index) => {
-            let line = `[${index + 1}] ${contact.label.padEnd(10)} ${contact.value}`;
-            // Add warning for email
-            if (contact.label === 'EMAIL') {
-              line += '  ⚠ Slow response';
-            }
-            return line;
-          }).join('\n');
-          addOutput(`CONTACT DYLAN VAN DER VEN
+    addOutput(`CONTACT DYLAN VAN DER VEN
 
 Status: ${discordActivity}
 Location: Netherlands 🇳🇱
@@ -1135,81 +1027,58 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
   linkedin   - Open LinkedIn profile
   email      - Open email client
   instagram  - Open Instagram profile`);
-        });
-        break;
+  };
 
-      // Aliases
-      case 'ls':
-        // Alias for projects
-        clearHistory();
-        setCurrentSection('projects');
-        const projectsList2 = projectsData.map((p, i) => 
-          `[${i + 1}] ${p.name} - ${p.description}`
-        ).join('\n');
-        addOutput(`PROJECTS\n\n${projectsList2}\n\nType a number (1-${projectsData.length}) to view details`);
-        break;
+  const applyThemePreference = (themeName: string) => {
+    setCurrentTheme(themeName);
+    localStorage.setItem('terminal-theme', themeName);
 
-      case 'typing on':
-        if (typingEffect) {
-          addOutput('⚠ Typing effect is already enabled', 'error');
-        } else {
-          setTypingEffect(true);
-          localStorage.setItem('terminal-typing-effect', 'true');
-          addOutput('✓ Typing effect enabled');
-        }
-        break;
+    if (themeName === 'default') {
+      document.documentElement.removeAttribute('data-theme');
+      return;
+    }
 
-      case 'typing off':
-        if (!typingEffect) {
-          addOutput('⚠ Typing effect is already disabled', 'error');
-        } else {
-          setTypingEffect(false);
-          localStorage.setItem('terminal-typing-effect', 'false');
-          addOutput('✓ Typing effect disabled');
-        }
-        break;
+    document.documentElement.setAttribute('data-theme', themeName);
+  };
 
-      case 'sound on':
-        if (soundEnabled) {
-          addOutput('⚠ Terminal sounds are already enabled', 'error');
-        } else {
-          setSoundEnabled(true);
-          localStorage.setItem('terminal-sound', 'true');
-          addOutput('✓ Terminal sounds enabled 🔊');
-          playBeep(); // Demo the sound
-        }
-        break;
+  const setTypingPreference = (enabled: boolean) => {
+    if (typingEffect === enabled) {
+      addOutput(`⚠ Typing effect is already ${enabled ? 'enabled' : 'disabled'}`, 'error');
+      return;
+    }
 
-      case 'sound off':
-        if (!soundEnabled) {
-          addOutput('⚠ Terminal sounds are already disabled', 'error');
-        } else {
-          setSoundEnabled(false);
-          localStorage.setItem('terminal-sound', 'false');
-          addOutput('✓ Terminal sounds disabled 🔇');
-        }
-        break;
+    setTypingEffect(enabled);
+    localStorage.setItem('terminal-typing-effect', String(enabled));
+    addOutput(`✓ Typing effect ${enabled ? 'enabled' : 'disabled'}`);
+  };
 
-      case 'crt on':
-        if (crtEffect) {
-          addOutput('⚠ CRT screen effect is already enabled', 'error');
-        } else {
-          setCrtEffect(true);
-          addOutput('✓ CRT screen effect enabled 📺');
-        }
-        break;
+  const setSoundPreference = (enabled: boolean) => {
+    if (soundEnabled === enabled) {
+      addOutput(`⚠ Terminal sounds are already ${enabled ? 'enabled' : 'disabled'}`, 'error');
+      return;
+    }
 
-      case 'crt off':
-        if (!crtEffect) {
-          addOutput('⚠ CRT screen effect is already disabled', 'error');
-        } else {
-          setCrtEffect(false);
-          addOutput('✓ CRT screen effect disabled');
-        }
-        break;
+    setSoundEnabled(enabled);
+    localStorage.setItem('terminal-sound', String(enabled));
+    addOutput(`✓ Terminal sounds ${enabled ? 'enabled 🔊' : 'disabled 🔇'}`);
 
-      case 'themes':
-        addOutput(`AVAILABLE THEMES:
+    if (enabled) {
+      playBeep();
+    }
+  };
+
+  const setCrtPreference = (enabled: boolean) => {
+    if (crtEffect === enabled) {
+      addOutput(`⚠ CRT screen effect is already ${enabled ? 'enabled' : 'disabled'}`, 'error');
+      return;
+    }
+
+    setCrtEffect(enabled);
+    addOutput(`✓ CRT screen effect ${enabled ? 'enabled 📺' : 'disabled'}`);
+  };
+
+  const showThemesOutput = () => {
+    addOutput(`AVAILABLE THEMES:
 
 [1]  default         - Modern blue terminal
 [2]  green           - Classic green terminal
@@ -1229,41 +1098,364 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
 
 Use: theme <name>
 Example: theme tokyo-night`);
-        break;
+  };
 
-      case 'tree':
-        {
-          const nextShowTreePanel = !showTreePanel;
-          setShowTreePanel(nextShowTreePanel);
-          addOutput(nextShowTreePanel ? 'Tree panel enabled. Type tree again to hide.' : 'Tree panel hidden.');
+  const toggleTreePanel = () => {
+    const nextShowTreePanel = !showTreePanel;
+    setShowTreePanel(nextShowTreePanel);
+    addOutput(nextShowTreePanel ? 'Tree panel enabled. Type tree again to hide.' : 'Tree panel hidden.');
+  };
+
+  const launchTetris = () => {
+    addOutput('Launching Tetris...');
+    setTimeout(() => setShowTetris(true), 500);
+  };
+
+  const launchSnake = () => {
+    addOutput('Launching Snake...');
+    setTimeout(() => setShowSnake(true), 500);
+  };
+
+  const showStatsOutput = () => {
+    const sessionTime = Math.floor((Date.now() - sessionStart) / 1000);
+    const minutes = Math.floor(sessionTime / 60);
+    const seconds = sessionTime % 60;
+    const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
+    const mostUsedCmd = Array.from(commandFrequency.entries())
+      .sort((a, b) => b[1] - a[1])[0];
+
+    const sectionsStr = Array.from(sectionsVisited).join(', ');
+
+    addOutput(`SESSION STATISTICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Session Time:      ${timeStr}
+Commands Run:       ${commandCount}
+Sections Visited:  ${sectionsVisited.size} (${sectionsStr})
+Most Used Command: ${mostUsedCmd ? `${mostUsedCmd[0]} (${mostUsedCmd[1]}x)` : 'N/A'}
+Commands in History: ${commandHistory.length}
+
+Keep exploring!`);
+  };
+
+  const showNeofetchOutput = () => {
+    const sessionMinutes = Math.max(1, Math.floor((Date.now() - sessionStart) / 60000));
+    addOutput(` _   _  ____ _____
+| \\ | |/ ___|_   _|  OS: NST.v2 (NiSuTe Kernel)
+|  \\| |\\___ \\ | |    Host: Dylan's Portfolio
+| |\\  | ___) || |    Uptime: ${sessionMinutes} mins
+|_| \\_|____/ |_|     Shell: dsh (dylan-sh)
+                     Theme: ${currentTheme}
+                     Discord: ${discordActivity}`);
+  };
+
+  const showBacklogOutput = (subcommand: string = 'all') => {
+    const statusIcon: Record<'learning' | 'building' | 'researching' | 'done', string> = {
+      learning: '📚',
+      building: '🛠',
+      researching: '🔍',
+      done: '✅',
+    };
+
+    const formatBacklogItem = (item: typeof learningBacklog[number]) => {
+      return `[${item.id}] ${statusIcon[item.status]} ${item.topic}\n    Status: ${item.status.toUpperCase()} | Priority: ${item.priority.toUpperCase()} | ETA: ${item.eta}\n    Focus: ${item.focus}`;
+    };
+
+    let filteredItems = learningBacklog;
+    let title = 'LEARNING BACKLOG';
+
+    if (subcommand === 'next') {
+      const nextItem = learningBacklog.find((item) => item.status !== 'done');
+      filteredItems = nextItem ? [nextItem] : [];
+      title = 'BACKLOG - NEXT UP';
+    } else if (subcommand === 'focus') {
+      filteredItems = learningBacklog.filter((item) => item.priority === 'high' && item.status !== 'done');
+      title = 'BACKLOG - CURRENT FOCUS';
+    } else if (subcommand === 'done') {
+      filteredItems = learningBacklog.filter((item) => item.status === 'done');
+      title = 'BACKLOG - COMPLETED';
+    } else if (subcommand !== 'all') {
+      addOutput(`Invalid backlog option: ${subcommand}\nUse: backlog | backlog next | backlog focus | backlog done`, 'error');
+      return;
+    }
+
+    if (filteredItems.length === 0) {
+      addOutput(`${title}\n\nNo items found for this filter.`, 'error');
+      return;
+    }
+
+    const output = filteredItems.map(formatBacklogItem).join('\n\n');
+    addOutput(`${title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n${output}`);
+  };
+
+  const setDebugPreference = (enabled: boolean) => {
+    if (debugMode === enabled) {
+      addOutput(`⚠ Debug mode is already ${enabled ? 'enabled' : 'disabled'}`, 'error');
+      return;
+    }
+
+    setDebugMode(enabled);
+
+    if (!enabled) {
+      addOutput('✓ Debug mode disabled');
+      return;
+    }
+
+    const performanceMemory = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
+    const debugInfo = `DEBUG MODE ENABLED 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[REACT STATE]
+Current Section: ${currentSection}
+Current Subsection: ${currentSubsection}
+History Lines: ${history.length}
+Typing Effect: ${typingEffect ? 'ON' : 'OFF'}
+Sound: ${soundEnabled ? 'ON' : 'OFF'}
+CRT Effect: ${crtEffect ? 'ON' : 'OFF'}
+Theme: ${currentTheme}
+
+[LOCALSTORAGE]
+Command History: ${commandHistory.length} commands
+Stored Theme: ${localStorage.getItem('terminal-theme')}
+Stored Sound: ${localStorage.getItem('terminal-sound')}
+Stored Typing: ${localStorage.getItem('terminal-typing-effect')}
+Stored CRT: ${localStorage.getItem('terminal-crt')}
+
+[BROWSER]
+User Agent: ${navigator.userAgent}
+Viewport: ${window.innerWidth}x${window.innerHeight}
+Language: ${navigator.language}
+
+[PERFORMANCE]
+Memory: ${performanceMemory ? (performanceMemory.usedJSHeapSize / 1048576).toFixed(2) + ' MB' : 'N/A'}
+Uptime: ${Math.floor((Date.now() - sessionStart) / 1000)}s
+
+Type 'debug off' to disable`;
+    addOutput(debugInfo);
+  };
+
+  const executeCommand = (cmd: string) => {
+    const sanitizedCmd = sanitizeCommandInput(cmd);
+    const trimmedCmd = normalizeCommandInput(sanitizedCmd);
+    
+    // Handle sudo password mode
+    if (sudoMode) {
+      setSudoMode(false);
+      addInput('*'.repeat(sanitizedCmd.length));
+      addOutputWithDelay([
+        'Authentication successful.',
+        'Checking system privileges...',
+        'Warning: You now have root access to absolutely nothing.',
+        'sudo: Nice try though.'
+      ]);
+      return;
+    }
+    
+    addInput(sanitizedCmd);
+    setCommandHistory(prev => [...prev, sanitizedCmd]);
+    setHistoryIndex(-1);
+    playBeep(); // Play sound on command execution
+
+    // Track stats
+    setCommandCount(prev => prev + 1);
+    setCommandFrequency(prev => {
+      const newMap = new Map(prev);
+      newMap.set(trimmedCmd, (newMap.get(trimmedCmd) || 0) + 1);
+      return newMap;
+    });
+
+    if (!trimmedCmd) return;
+
+    // Check for number input (1-9)
+    if (/^[1-9]$/.test(trimmedCmd)) {
+      handleNumberInput(parseInt(trimmedCmd));
+      return;
+    }
+
+    const exactCommandHandlers: Record<ExactCommandId, () => void> = {
+      help: () => addOutput(getHelpOutput()),
+      clear: clearHistory,
+      home: () => {
+        setSectionsVisited(prev => new Set(prev).add('home'));
+        void showLoading(() => {
+          clearHistory();
+          showHomeContent();
+          addOutput(buildHomeOutput(discordActivity));
+        });
+      },
+      about: () => {
+        setSectionsVisited(prev => new Set(prev).add('about'));
+        void showLoading(showAboutOverview);
+      },
+      bio: () => {
+        if (currentSection === 'about') {
+          showBioContent();
+          return;
         }
-        break;
+        addOutput('undefined', 'error');
+      },
+      skills: () => {
+        if (currentSection === 'about') {
+          showSkillsContent();
+          return;
+        }
+        addOutput('undefined', 'error');
+      },
+      frameworks: () => {
+        if (currentSection === 'about') {
+          showFrameworksContent();
+          return;
+        }
+        addOutput('undefined', 'error');
+      },
+      experience: () => {
+        if (currentSection === 'about') {
+          showExperienceContent();
+          return;
+        }
+        addOutput('undefined', 'error');
+      },
+      projects: () => {
+        setSectionsVisited(prev => new Set(prev).add('projects'));
+        void showLoading(showProjectsOverview);
+      },
+      major: showMajorProjectsList,
+      minor: showMinorProjectsList,
+      back: () => {
+        if (!currentSubsection) {
+          addOutput('Already at main section. Type a section name to navigate.', 'error');
+          return;
+        }
 
-      case 'git push':
-      case 'git push origin main':
-        runGitPushPrank();
-        break;
+        setCurrentSubsection(null);
+        if (currentSection === 'about') {
+          showAboutOverview();
+          return;
+        }
 
-      default:
-        // Handle 'theme' command
+        if (currentSection === 'projects') {
+          showProjectsOverview();
+        }
+      },
+      contact: () => {
+        setSectionsVisited(prev => new Set(prev).add('contact'));
+        void showLoading(showContactOverview);
+      },
+      ls: showProjectsAliasListing,
+      'typing-on': () => setTypingPreference(true),
+      'typing-off': () => setTypingPreference(false),
+      'sound-on': () => setSoundPreference(true),
+      'sound-off': () => setSoundPreference(false),
+      'crt-on': () => setCrtPreference(true),
+      'crt-off': () => setCrtPreference(false),
+      themes: showThemesOutput,
+      tree: toggleTreePanel,
+      'git-push': runGitPushPrank,
+      matrix: () => {
+        void addOutputWithDelay([
+          'Wake up, Neo...',
+          'The Matrix has you.',
+          'Follow the white rabbit.',
+          '',
+          'Knock, knock, Neo.'
+        ]);
+      },
+      coffee: () => {
+        void addOutputWithDelay([
+          'Setting perfect temperature...',
+          'Adding milk...',
+          'Brewing coffee...',
+          '',
+          `       (  )   (   )  )
+        ) (   )  (  (
+        ( )  (    ) )
+        _____________
+       <_____________> ___
+       |             |/ _ \\
+       |               | | |
+       |               |_| |
+    ___|             |\\___/
+   /    \\___________/    \\
+   \\_____________________/`
+        ]);
+      },
+      joke: () => {
+        const jokes = [
+          ['Why do programmers prefer dark mode?', '', 'Because light attracts bugs!'],
+          ['Why do Java developers wear glasses?', '', 'Because they don\'t C#!'],
+          ['How many programmers does it take to change a light bulb?', '', 'None. It\'s a hardware problem!'],
+          ['Why did the programmer quit his job?', '', 'Because he didn\'t get arrays!']
+        ];
+        const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+        void addOutputWithDelay(randomJoke);
+      },
+      secret: () => {
+        const secrets = [
+          ['You found the secret command!', 'There is no secret... or is there?', 'Try exploring more commands!'],
+          ['Secret discovered!', 'The real secret is the code we wrote along the way.'],
+          ['Easter egg unlocked!', 'Congratulations! You\'re now officially a command explorer.'],
+          ['Hidden gem found!', 'You have excellent curiosity. That\'s what makes great developers!']
+        ];
+        const randomSecret = secrets[Math.floor(Math.random() * secrets.length)];
+        void addOutputWithDelay(randomSecret);
+      },
+      sudo: () => {
+        addOutput('[sudo] password for dylan:');
+        setSudoMode(true);
+      },
+      whoami: () => {
+        void addOutputWithDelay([
+          'You are: A curious developer',
+          'Location: Viewing Dylan\'s portfolio',
+          'Mission: Exploring terminal commands',
+          'Status: Awesome!'
+        ]);
+      },
+      ping: () => {
+        void addOutputWithDelay([
+          'PING portfolio.dylan.dev',
+          '64 bytes from awesome: icmp_seq=1 ttl=64 time=0.1 ms',
+          '64 bytes from impressive: icmp_seq=2 ttl=64 time=0.1 ms',
+          '64 bytes from hire_me: icmp_seq=3 ttl=64 time=0.1 ms'
+        ]);
+      },
+      fortune: () => {
+        void addOutputWithDelay([
+          'Your fortune: You will discover an amazing developer today.',
+          'Hint: You\'re already looking at his portfolio!'
+        ]);
+      },
+      tetris: launchTetris,
+      snake: launchSnake,
+      stats: showStatsOutput,
+      neofetch: showNeofetchOutput,
+      backlog: () => showBacklogOutput(),
+      'debug-on': () => setDebugPreference(true),
+      'debug-off': () => setDebugPreference(false),
+      'prompt-reset': () => {
+        setCustomPrompt('$');
+        addOutput('✓ Prompt reset to default: $');
+      },
+    };
+
+    const exactCommand = resolveExactCommand(trimmedCmd);
+    if (exactCommand) {
+      exactCommandHandlers[exactCommand]();
+      return;
+    }
+
+    // Handle 'theme' command
         if (trimmedCmd.startsWith('theme ')) {
           const themeName = trimmedCmd.substring(6).trim();
-          const validThemes = ['default', 'green', 'amber', 'dracula', 'monokai', 'nord', 'high-contrast', 'solarized-dark', 'solarized-light', 'gruvbox', 'tokyo-night', 'one-dark', 'synthwave', 'matrix', 'cyberpunk'];
           
-          if (validThemes.includes(themeName)) {
-            setCurrentTheme(themeName);
-            localStorage.setItem('terminal-theme', themeName);
-            
-            if (themeName === 'default') {
-              document.documentElement.removeAttribute('data-theme');
-            } else {
-              document.documentElement.setAttribute('data-theme', themeName);
-            }
+          if (VALID_THEMES.includes(themeName as typeof VALID_THEMES[number])) {
+            applyThemePreference(themeName);
             
             addOutput(`✓ Theme changed to: ${themeName}`);
             return;
           } else {
-            addOutput(`ERROR: Invalid theme '${themeName}'\nAvailable themes: ${validThemes.join(', ')}`, 'error');
+            addOutput(`ERROR: Invalid theme '${themeName}'\nAvailable themes: ${VALID_THEMES.join(', ')}`, 'error');
             return;
           }
         }
@@ -1808,19 +2000,13 @@ Type 'debug off' to disable`;
 
         // Custom prompt
         if (trimmedCmd.startsWith('prompt set ')) {
-          const newPrompt = cmd.substring('prompt set '.length).trim();
+          const newPrompt = sanitizedCmd.substring('prompt set '.length).trim();
           if (newPrompt && newPrompt.length > 0) {
             setCustomPrompt(newPrompt);
             addOutput(`✓ Prompt changed to: ${newPrompt}`);
           } else {
             addOutput('ERROR: Prompt cannot be empty', 'error');
           }
-          return;
-        }
-
-        if (trimmedCmd === 'prompt reset') {
-          setCustomPrompt('$');
-          addOutput('✓ Prompt reset to default: $');
           return;
         }
 
@@ -1855,13 +2041,12 @@ Type 'debug off' to disable`;
         }
 
         // Try to find similar command
-        const suggestion = findSimilarCommand(cmd);
+        const suggestion = findSimilarCommand(trimmedCmd);
         if (suggestion) {
-          addOutput(`Command not found: ${cmd}\nDid you mean '${suggestion}'?\nType 'help' for available commands`, 'error');
+          addOutput(`Command not found: ${sanitizedCmd}\nDid you mean '${suggestion}'?\nType 'help' for available commands`, 'error');
         } else {
-          addOutput(`Command not found: ${cmd}\nType 'help' for available commands`, 'error');
+          addOutput(`Command not found: ${sanitizedCmd}\nType 'help' for available commands`, 'error');
         }
-    }
   };
 
   const openProjectDetails = (category: ProjectCategory, projectIndex: number) => {
@@ -1896,167 +2081,70 @@ Type 'back' to return`);
   const handleNumberInput = (num: number) => {
     if (currentSection === 'about') {
       if (num === 1) {
-        setCurrentSubsection('bio');
-        clearHistory();
-        addOutput(`BIOGRAPHY
-
-I’m a fourth-year Web and Software Development student at Yonder (formerly ROC Tilburg). I enjoy frontend work but lean toward full-stack and backend development.
-My goal is to grow into a strong full-stack developer with a solid foundation in cybersecurity and DevOps.
-
-Current personal projects:
-• A Discord bot for my community
-• Portfolio V2
-• An online multiplayer version of Zeeslag
-
-Currently learning:
-• SvelteKit
-• React
-• Discord API
-• Completing my studies
-
-Type 'back' to return`);
+        showBioContent();
       } else if (num === 2) {
-        setCurrentSubsection('skills');
-        clearHistory();
-        
-        const getProgressBar = (level: number) => {
-          const filled = '█'.repeat(level);
-          const empty = '░'.repeat(5 - level);
-          return filled + empty;
-        };
-        
-        const skillsOutput = Object.entries(skillsData).map(([category, items]) => {
-          const skillsList = (items as Array<{name: string, level: number}>).map(skill => {
-            const bar = getProgressBar(skill.level);
-            return `  ${skill.name.padEnd(20)} [${bar}] ${skill.level}/5`;
-          }).join('\n');
-          return `[${category.toUpperCase()}]\n${skillsList}`;
-        }).join('\n\n');
-        
-        addOutput(`TECHNICAL SKILLS\n\n${skillsOutput}\n\nLegend: █ = Proficient, ░ = Learning\nColors: Red (1-2), Yellow (3), Light Green (4), Dark Green (5)\n\nType 'back' to return`);
+        showSkillsContent();
       } else if (num === 3) {
-        setCurrentSubsection('frameworks');
-        clearHistory();
-        const frontendList = skillsData.frontend.map((s) => s.name).join(', ');
-        const backendList = skillsData.backend.map((s) => s.name).join(', ');
-        const toolsList = skillsData.tools.map((s) => s.name).join(', ');
-        addOutput(`FRAMEWORKS & LIBRARIES
-
-Frontend: ${frontendList}
-Backend: ${backendList}
-Tools: ${toolsList}
-
-Type 'back' to return`);
+        showFrameworksContent();
       } else if (num === 4) {
-        setCurrentSubsection('experience');
-        clearHistory();
-        const experienceOutput = experienceData.map((exp) => {
-          const descriptions = exp.description.map(d => `    • ${d}`).join('\n');
-          const techStack = `    Tech: ${exp.tech.join(', ')}`;
-          return `
-[█] ${exp.title}
-    ${exp.company} | ${exp.location}
-    ${exp.period}
-
-${descriptions}
-${techStack}`;
-        }).join('\n\n');
-        addOutput(`WORK EXPERIENCE${experienceOutput}\n\nType 'back' to return`);
+        showExperienceContent();
       }
-    } else if (currentSection === 'projects') {
-      // If no subsection, selecting major or minor
+      return;
+    }
+
+    if (currentSection === 'projects') {
       if (!currentSubsection) {
         if (num === 1) {
-          // Navigate to major projects
-          setCurrentSubsection('major');
-          clearHistory();
-          const majorList = majorProjects.map((p, i) => 
-            `[${i + 1}] ${p.name}`
-          ).join('\n');
-          addOutput(`MAJOR PROJECTS\n\n${majorList}\n\nType a number (1-${majorProjects.length}) to view details`);
+          showMajorProjectsList();
         } else if (num === 2) {
-          // Navigate to minor projects
-          setCurrentSubsection('minor');
-          clearHistory();
-          const minorList = minorProjects.map((p, i) => 
-            `[${i + 1}] ${p.name}`
-          ).join('\n');
-          addOutput(`MINOR PROJECTS\n\n${minorList}\n\nType a number (1-${minorProjects.length}) to view details`);
+          showMinorProjectsList();
         }
-      } else if (currentSubsection === 'major' || currentSubsection === 'minor') {
-        // In a category, selecting a project
+        return;
+      }
+
+      if (currentSubsection === 'major' || currentSubsection === 'minor') {
         const projectList = currentSubsection === 'major' ? majorProjects : minorProjects;
         if (num >= 1 && num <= projectList.length) {
           openProjectDetails(currentSubsection, num - 1);
         }
-      } else if (currentSubsection?.includes('-project-')) {
-        // In a project detail view
+        return;
+      }
+
+      if (currentSubsection.includes('-project-')) {
         const [category, , projectNumStr] = currentSubsection.split('-');
-        const projectNum = parseInt(projectNumStr);
+        const projectNum = parseInt(projectNumStr, 10);
         const projectList = category === 'major' ? majorProjects : minorProjects;
         const project = projectList[projectNum - 1];
-        
-        if (num === 1) {
-          // Handle [1] github command
+
+        if (num === 1 && project.link) {
           addOutput(`Opening GitHub: ${project.link}`);
           window.open(project.link, '_blank');
         } else if (num === 2 && project.webapp) {
-          // Handle [2] webapp command
           addOutput(`Opening live webapp: ${project.webapp}`);
           window.open(project.webapp, '_blank');
         }
       }
-    } else if (currentSection === 'contact') {
+      return;
+    }
+
+    if (currentSection === 'contact') {
       if (num >= 1 && num <= contactData.length) {
         const contact = contactData[num - 1];
         handleCopy(contact.value, contact.label);
       }
-    } else if (currentSection === 'home') {
+      return;
+    }
+
+    if (currentSection === 'home') {
       if (num === 1) {
-        clearHistory();
-        showAboutMenu();
-        addOutput(`ABOUT DYLAN VAN DER VEN
-
-[1] bio        - About me
-[2] skills     - Technical skills (with levels)
-[3] frameworks - Frameworks & libraries
-[4] experience - Work history & timeline
-
-Type a number or command to view`);
+        setSectionsVisited(prev => new Set(prev).add('about'));
+        showAboutOverview();
       } else if (num === 2) {
-        clearHistory();
-        showProjectsMenu();
-        addOutput(`PROJECTS
-
-[1] major   - Major projects (${majorProjects.length})
-[2] minor   - Minor projects (${minorProjects.length})
-
-Type a number or 'major'/'minor' to view category`);
+        setSectionsVisited(prev => new Set(prev).add('projects'));
+        showProjectsOverview();
       } else if (num === 3) {
         setSectionsVisited(prev => new Set(prev).add('contact'));
-        clearHistory();
-        showContactMenu();
-        const contactOutput = contactData.map((contact, index) => {
-          let line = `[${index + 1}] ${contact.label.padEnd(10)} ${contact.value}`;
-          // Add warning for email
-          if (contact.label === 'EMAIL') {
-            line += '  ⚠ Slow response';
-          }
-          return line;
-        }).join('\n');
-        addOutput(`CONTACT DYLAN VAN DER VEN
-
-Status: ${discordActivity}
-Location: Netherlands 🇳🇱
-Timezone: CET (UTC+1)
-
-${contactOutput}
-
-Type a number (1-${contactData.length}) to copy, or use quick commands:
-  github     - Open GitHub profile
-  linkedin   - Open LinkedIn profile
-  email      - Open email client
-  instagram  - Open Instagram profile`);
+        showContactOverview();
       }
     }
   };
@@ -2293,9 +2381,21 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
             className="terminal-input"
             placeholder={sudoMode ? '' : isBooting ? 'Booting system...' : "Type 'help' for commands..."}
             autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect="off"
+            enterKeyHint="send"
+            inputMode="text"
             spellCheck="false"
             disabled={showTetris || showSnake || showFake404 || isBooting}
           />
+          <button
+            type="submit"
+            className="terminal-submit"
+            disabled={!input.trim() || showTetris || showSnake || showFake404 || isBooting}
+            aria-label="Run terminal command"
+          >
+            Run
+          </button>
         </form>
         </div>
       </div>

@@ -390,6 +390,29 @@
   opacity: 0.4;
 }
 
+.terminal-submit {
+  display: none;
+  border: 1px solid var(--terminal-accent);
+  background: transparent;
+  color: var(--terminal-accent);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.terminal-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.terminal-submit:not(:disabled):hover {
+  background: var(--terminal-accent);
+  color: var(--terminal-bg);
+}
+
 /* Contact Inline Styles */
 .contact-inline {
   margin: 1rem 0;
@@ -876,6 +899,15 @@ flex-direction: column;
     font-size: 16px; /* Prevent zoom on iOS */
     -webkit-appearance: none;
     appearance: none;
+  }
+
+  .terminal-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 68px;
+    min-height: 44px;
+    flex-shrink: 0;
   }
 
   /* Hide desktop ASCII art on mobile */
