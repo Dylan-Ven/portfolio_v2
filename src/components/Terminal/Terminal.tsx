@@ -107,44 +107,6 @@ const HistoryEntry = memo(function HistoryEntry({ line }: { line: TerminalLine }
   );
 });
 
-const LiveMetricsPanel = memo(function LiveMetricsPanel({ sessionStart }: { sessionStart: number }) {
-  const [systemNow, setSystemNow] = useState<Date>(new Date());
-  const [cpuLoad, setCpuLoad] = useState<number>(32);
-  const [memoryLoad, setMemoryLoad] = useState<number>(46);
-  const [hasHydrated, setHasHydrated] = useState(false);
-
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSystemNow(new Date());
-      setCpuLoad(prev => Math.max(8, Math.min(96, Math.round(prev + (Math.random() * 10 - 5)))));
-      setMemoryLoad(prev => Math.max(12, Math.min(92, Math.round(prev + (Math.random() * 8 - 4)))));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const sessionSeconds = hasHydrated ? Math.floor((systemNow.getTime() - sessionStart) / 1000) : 0;
-  const uptimeMinutes = Math.floor(sessionSeconds / 60);
-  const uptimeRemainderSeconds = sessionSeconds % 60;
-  const currentClock = hasHydrated ? systemNow.toLocaleTimeString('en-GB', { hour12: false }) : '--:--:--';
-
-  return (
-    <>
-      <div className="diag-row"><span>Current Time: </span><strong>{currentClock}</strong></div>
-      <div className="visual-content load-panel">
-        <div className="diag-row"><span>Uptime </span><strong>{uptimeMinutes}m {uptimeRemainderSeconds}s</strong></div>
-        <div className="load-row"><span>CPU</span><span>{cpuLoad}%</span></div>
-        <div className="load-bar"><div className="load-fill" style={{ width: `${cpuLoad}%` }} /></div>
-        <div className="load-row"><span>Memory</span><span>{memoryLoad}%</span></div>
-        <div className="load-bar"><div className="load-fill memory" style={{ width: `${memoryLoad}%` }} /></div>
-      </div>
-    </>
-  );
-});
-
 export default function Terminal() {
   const developerEmail = contactData.find((item) => item.label === 'EMAIL')?.value ?? 'developer@example.com';
   const [currentSection, setCurrentSection] = useState<Section>('home');
@@ -194,6 +156,7 @@ export default function Terminal() {
     return false;
   });
   const [isBooting, setIsBooting] = useState(true);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const [sessionStart] = useState<number>(Date.now());
   const [commandCount, setCommandCount] = useState<number>(0);
   const [sectionsVisited, setSectionsVisited] = useState<Set<string>>(new Set(['home']));
@@ -215,6 +178,9 @@ export default function Terminal() {
   const [showSnake, setShowSnake] = useState<boolean>(false);
   const [showFake404, setShowFake404] = useState<boolean>(false);
   const [showTreePanel, setShowTreePanel] = useState<boolean>(false);
+  const [systemNow, setSystemNow] = useState<Date>(new Date());
+  const [cpuLoad, setCpuLoad] = useState<number>(32);
+  const [memoryLoad, setMemoryLoad] = useState<number>(46);
   const inputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -230,19 +196,18 @@ export default function Terminal() {
     let cancelled = false;
 
     const bootSequence = async () => {
-      const isMobileViewport = typeof window !== 'undefined' && window.innerWidth <= 768;
       const bootMessages = buildBootSequence();
+      const isMobileViewport = typeof window !== 'undefined' && window.innerWidth <= 768;
 
-      const baseLineDelay = isMobileViewport ? 34 : 160;
-      const commandDelay = isMobileViewport ? 52 : 240;
-      const statusDelay = isMobileViewport ? 44 : 190;
-      const blankLineDelay = isMobileViewport ? 58 : 290;
-      const dramaticDelay = isMobileViewport ? 72 : 350;
-      const minDelay = isMobileViewport ? 12 : 40;
+      const baseLineDelay = isMobileViewport ? 95 : 170;
+      const commandDelay = isMobileViewport ? 140 : 260;
+      const statusDelay = isMobileViewport ? 115 : 200;
+      const blankLineDelay = isMobileViewport ? 180 : 320;
+      const dramaticDelay = isMobileViewport ? 220 : 380;
 
       const withJitter = (value: number, spread: number) => {
         const offset = Math.floor(Math.random() * (spread * 2 + 1)) - spread;
-        return Math.max(minDelay, value + offset);
+        return Math.max(40, value + offset);
       };
 
       const getDelayForLine = (line: string) => {
@@ -266,13 +231,7 @@ export default function Terminal() {
       };
       
       const tempHistory: TerminalLine[] = [];
-
-      if (bootMessages.length > 0) {
-        tempHistory.push({ type: 'output', content: bootMessages[0] });
-        setHistory([...tempHistory]);
-      }
-
-      for (const msg of bootMessages.slice(1)) {
+      for (const msg of bootMessages) {
         await new Promise(resolve => setTimeout(resolve, getDelayForLine(msg)));
         if (cancelled) {
           return;
@@ -281,11 +240,18 @@ export default function Terminal() {
         setHistory([...tempHistory]);
       }
       
-      await new Promise(resolve => setTimeout(resolve, isMobileViewport ? 120 : 420));
+      await new Promise(resolve => setTimeout(resolve, isMobileViewport ? 260 : 520));
       if (cancelled) {
         return;
       }
       setIsBooting(false);
+
+      // Clear boot output before pushing homescreen
+      setHistory([]);
+      await new Promise(resolve => setTimeout(resolve, 80));
+      if (cancelled) {
+        return;
+      }
       
       // Show home content after boot
       setHistory([{ type: 'output', content: buildHomeOutput(discordActivity) }]);
@@ -339,6 +305,27 @@ export default function Terminal() {
       gitPushTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       gitPushTimeoutsRef.current = [];
     };
+  }, []);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
+
+  // Simulated diagnostics ticker
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSystemNow(new Date());
+      setCpuLoad(prev => {
+        const next = prev + (Math.random() * 10 - 5);
+        return Math.max(8, Math.min(96, Math.round(next)));
+      });
+      setMemoryLoad(prev => {
+        const next = prev + (Math.random() * 8 - 4);
+        return Math.max(12, Math.min(92, Math.round(next)));
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Fetch Discord activity via Lanyard
@@ -2188,7 +2175,7 @@ Type 'back' to return`);
     return newParticles;
   };
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {
       const newParticles = createParticles();
@@ -2201,8 +2188,7 @@ Type 'back' to return`);
       executeCommand(input);
       setInput('');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input]);
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -2272,6 +2258,10 @@ Type 'back' to return`);
 
     return { category, index, project };
   }, [currentSubsection]);
+  const sessionSeconds = hasHydrated ? Math.floor((systemNow.getTime() - sessionStart) / 1000) : 0;
+  const uptimeMinutes = Math.floor(sessionSeconds / 60);
+  const uptimeRemainderSeconds = sessionSeconds % 60;
+  const currentClock = hasHydrated ? systemNow.toLocaleTimeString('en-GB', { hour12: false }) : '--:--:--';
   const majorProjectSlugs = useMemo(
     () => majorProjects.map((project) => createProjectSlug(project.name)),
     []
@@ -2417,7 +2407,7 @@ Type 'back' to return`);
       
       <div className="visual-panel">
         <div className="visual-content diagnostics-panel">
-          <LiveMetricsPanel sessionStart={sessionStart} />
+          <div className="diag-row"><span>Current Time: </span><strong>{currentClock}</strong></div>
           <div className="diag-row"><span>Section: </span><strong>{currentSection.toUpperCase()}</strong></div>
           <div className="diag-row"><span>Commands: </span><strong>{commandCount}</strong></div>
         </div>
@@ -2427,6 +2417,13 @@ Type 'back' to return`);
             <pre className="directory-tree" dangerouslySetInnerHTML={{ __html: directoryTreeHtml }} />
           </div>
         )}
+        <div className="visual-content load-panel">
+          <div className="diag-row"><span>Uptime </span><strong>{uptimeMinutes}m {uptimeRemainderSeconds}s</strong></div>
+          <div className="load-row"><span>CPU</span><span>{cpuLoad}%</span></div>
+          <div className="load-bar"><div className="load-fill" style={{ width: `${cpuLoad}%` }} /></div>
+          <div className="load-row"><span>Memory</span><span>{memoryLoad}%</span></div>
+          <div className="load-bar"><div className="load-fill memory" style={{ width: `${memoryLoad}%` }} /></div>
+        </div>
         <div className="visual-content2">
           <div className="activity-status">
             <div className="activity-header">CURRENT ACTIVITY</div>
