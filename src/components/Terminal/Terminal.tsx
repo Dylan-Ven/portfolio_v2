@@ -51,6 +51,63 @@ Navigate to:
 [2] projects - View my work
 [3] contact  - Get in touch`;
 
+const generateSecureUUID = (): string => {
+  const cryptoApi = globalThis.crypto;
+
+  if (cryptoApi?.randomUUID) {
+    return cryptoApi.randomUUID();
+  }
+
+  if (cryptoApi?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    cryptoApi.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  return '00000000-0000-4000-8000-000000000000';
+};
+
+const buildBootSequence = (): string[] => {
+  const serverNumber = Math.floor(Math.random() * 25) + 1;
+  const biosVersion = `RBIOS-4.02.08.${String(Math.floor(Math.random() * 99) + 1).padStart(2, '0')}`;
+  const memorySize = [32, 64, 128, 256][Math.floor(Math.random() * 4)];
+  const rootCode = Math.floor(Math.random() * 9000) + 1000;
+  const serialCode = `52EE5.E${Math.floor(Math.random() * 9) + 1}.E${Math.floor(Math.random() * 9) + 1}`;
+  const fakeUUID = generateSecureUUID();
+
+  return [
+    'NST.v2 // NiSuTe SYSTEMS ARCHITECTURE',
+    `[NODE: ${serverNumber}]`,
+    `>UUID: ${fakeUUID}`,
+    'PROPERTY OF NISUTE EUROPE MEDIA LABS // EST. 199X',
+    '',
+    '> QUERY CONSOLE /SYNC',
+    '',
+    'NST-M800 "LENSMASTER"',
+    '',
+    '> GRANT PERM /LEVEL:ROOT /USER:ADMIN',
+    'Logic-Gate: OPEN. [RWED] privileges assigned to ADMIN.',
+    '',
+    '> ABORT RECOVERY /STATE:HOLD',
+    'Automatic reboot cicles: SUSPENDED. System in static state. Awaiting further instructions.',
+    '',
+    'NIS-TECH FIRMWARE (c) 2201-2203',
+    `CORE-BUILD: ${biosVersion} // UNIT: ${serialCode}`,
+    `UPPER-STACK: ${memorySize} GB`,
+    `IDENT: ${rootCode}`,
+    'STATUS: [MAINTENANCE OVERRIDE ACTIVE]',
+    '!! NOTICE: DIRECT DATA-STREAM ACCESS ACTIVE. PARITY CHECKS DISABLED. !!',
+    '',
+    '> LAUNCH TRACE /MAP:ACCOUNTS.F',
+    'Scrubbing Bit-Map...',
+    'Injecting Override...',
+    'Console Ready.',
+  ];
+};
+
 const HistoryEntry = memo(function HistoryEntry({ line }: { line: TerminalLine }) {
   return (
     <div className={`history-line ${line.type}`}>
@@ -107,13 +164,8 @@ export default function Terminal() {
     }
     return false;
   });
-  const [hasBooted, setHasBooted] = useState<boolean>(() => {
-    // Check if already booted this session
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('terminal-booted') === 'true';
-    }
-    return false;
-  });
+  const [isBooting, setIsBooting] = useState(true);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const [sessionStart] = useState<number>(Date.now());
   const [commandCount, setCommandCount] = useState<number>(0);
   const [sectionsVisited, setSectionsVisited] = useState<Set<string>>(new Set(['home']));
@@ -127,13 +179,14 @@ export default function Terminal() {
     }
     return '$';
   });
-  const [discordActivity, setDiscordActivity] = useState<string>('Playing Videogames');
+  const [discordActivity, setDiscordActivity] = useState<string>('Online');
   const [discordStatus, setDiscordStatus] = useState<'online' | 'idle' | 'dnd' | 'offline'>('online');
   const [particles, setParticles] = useState<Array<{id: number, x: number, y: number}>>([]);
   const [sudoMode, setSudoMode] = useState<boolean>(false);
   const [showTetris, setShowTetris] = useState<boolean>(false);
   const [showSnake, setShowSnake] = useState<boolean>(false);
   const [showFake404, setShowFake404] = useState<boolean>(false);
+  const [showTreePanel, setShowTreePanel] = useState<boolean>(false);
   const [systemNow, setSystemNow] = useState<Date>(new Date());
   const [cpuLoad, setCpuLoad] = useState<number>(32);
   const [memoryLoad, setMemoryLoad] = useState<number>(46);
@@ -148,50 +201,81 @@ export default function Terminal() {
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     showHomeContent();
-    
-    // Show boot sequence on first load
-    if (!hasBooted) {
-      const bootSequence = async () => {
-        const bootMessages = [
-          'INITIALIZING TERMINAL...',
-          'LOADING SYSTEM MODULES... [OK]',
-          'CHECKING PORTFOLIO DATA... [OK]',
-          'ESTABLISHING CONNECTION... [OK]',
-          'BOOTING DYLAN\'S PORTFOLIO v2.0',
-          ''
-        ];
-        
-        const tempHistory: TerminalLine[] = [];
-        for (const msg of bootMessages) {
-          await new Promise(resolve => setTimeout(resolve, 150));
-          tempHistory.push({ type: 'output', content: msg });
-          setHistory([...tempHistory]);
+
+    let cancelled = false;
+
+    const bootSequence = async () => {
+      const bootMessages = buildBootSequence();
+      const isMobileViewport = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+      const baseLineDelay = isMobileViewport ? 95 : 170;
+      const commandDelay = isMobileViewport ? 140 : 260;
+      const statusDelay = isMobileViewport ? 115 : 200;
+      const blankLineDelay = isMobileViewport ? 180 : 320;
+      const dramaticDelay = isMobileViewport ? 220 : 380;
+
+      const withJitter = (value: number, spread: number) => {
+        const offset = Math.floor(Math.random() * (spread * 2 + 1)) - spread;
+        return Math.max(40, value + offset);
+      };
+
+      const getDelayForLine = (line: string) => {
+        if (!line.trim()) {
+          return withJitter(blankLineDelay, isMobileViewport ? 20 : 35);
         }
-        
-        await new Promise(resolve => setTimeout(resolve, 300));
-        sessionStorage.setItem('terminal-booted', 'true');
-        setHasBooted(true);
-        
-        // Show home content after boot
-        setHistory([{
-          type: 'output',
-          content: buildHomeOutput(discordActivity)
-        }]);
+
+        if (line.startsWith('>')) {
+          return withJitter(commandDelay, isMobileViewport ? 18 : 30);
+        }
+
+        if (line.includes('NOTICE') || line.includes('MAINTENANCE') || line.includes('Console Ready')) {
+          return withJitter(dramaticDelay, isMobileViewport ? 24 : 40);
+        }
+
+        if (line.includes('...')) {
+          return withJitter(statusDelay, isMobileViewport ? 16 : 26);
+        }
+
+        return withJitter(baseLineDelay, isMobileViewport ? 14 : 24);
       };
       
-      bootSequence();
-    } else {
-      // Skip boot sequence if already booted
-      setHistory([{
-        type: 'output',
-        content: buildHomeOutput(discordActivity)
-      }]);
-    }
+      const tempHistory: TerminalLine[] = [];
+      for (const msg of bootMessages) {
+        await new Promise(resolve => setTimeout(resolve, getDelayForLine(msg)));
+        if (cancelled) {
+          return;
+        }
+        tempHistory.push({ type: 'output', content: msg });
+        setHistory([...tempHistory]);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, isMobileViewport ? 260 : 520));
+      if (cancelled) {
+        return;
+      }
+      setIsBooting(false);
+
+      // Clear boot output before pushing homescreen
+      setHistory([]);
+      await new Promise(resolve => setTimeout(resolve, 80));
+      if (cancelled) {
+        return;
+      }
+      
+      // Show home content after boot
+      setHistory([{ type: 'output', content: buildHomeOutput(discordActivity) }]);
+    };
+
+    bootSequence();
     
     // Apply saved theme
     if (currentTheme !== 'default') {
       document.documentElement.setAttribute('data-theme', currentTheme);
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
   /* eslint-enable react-hooks/exhaustive-deps */
 
@@ -232,6 +316,10 @@ export default function Terminal() {
     };
   }, []);
 
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
+
   // Simulated diagnostics ticker
   useEffect(() => {
     const interval = setInterval(() => {
@@ -254,63 +342,72 @@ export default function Terminal() {
     const DISCORD_ID = '828859067618558012';
     
     const fetchDiscordActivity = async () => {
+      const directUrl = `https://api.lanyard.rest/v1/users/${DISCORD_ID}`;
+      const proxiedUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
+
       try {
-        // Use CORS proxy for development to avoid CORS issues
-        const isDev = process.env.NODE_ENV === 'development';
-        const apiUrl = isDev 
-          ? `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.lanyard.rest/v1/users/${DISCORD_ID}`)}`
-          : `https://api.lanyard.rest/v1/users/${DISCORD_ID}`;
-        
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        const candidateUrls = process.env.NODE_ENV === 'development'
+          ? [proxiedUrl, directUrl]
+          : [directUrl, proxiedUrl];
+
+        let data: unknown = null;
+
+        for (const url of candidateUrls) {
+          try {
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) {
+              continue;
+            }
+
+            data = await response.json();
+            break;
+          } catch {
+            continue;
+          }
         }
-        
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-          const { discord_status, activities, listening_to_spotify } = data.data;
+
+        if (!data || typeof data !== 'object') {
+          return;
+        }
+
+        const parsedData = data as {
+          success?: boolean;
+          data?: {
+            discord_status?: 'online' | 'idle' | 'dnd' | 'offline';
+            activities?: Array<{ type?: number; name?: string; details?: string; state?: string }>;
+            listening_to_spotify?: boolean;
+            spotify?: { song?: string; artist?: string };
+          };
+        };
+
+        if (parsedData.success && parsedData.data) {
+          const { discord_status, activities, listening_to_spotify } = parsedData.data;
           
           // Update status
-          setDiscordStatus(discord_status);
+          setDiscordStatus(discord_status ?? 'online');
           
-          // Determine activity text
-          if (listening_to_spotify) {
-            const song = data.data.spotify?.song || 'Unknown';
-            const artist = data.data.spotify?.artist || 'Unknown';
-            setDiscordActivity(`Listening to ${song} by ${artist}`);
-          } else if (activities && activities.length > 0) {
-            const activity = activities[0];
-            if (activity.type === 0) { // Playing
-              setDiscordActivity(`Playing ${activity.name}`);
-            } else if (activity.type === 2) { // Listening
-              setDiscordActivity(`Listening to ${activity.name}`);
-            } else if (activity.type === 3) { // Watching
-              setDiscordActivity(`Watching ${activity.name}`);
-            } else if (activity.type === 4) { // Custom status
-              setDiscordActivity(activity.state || activity.name || 'Chilling');
-            } else {
-              setDiscordActivity(activity.name || 'Active on Discord');
-            }
-          } else {
-            // No activity, show based on status
-            if (discord_status === 'online') {
-              setDiscordActivity('Online');
-            } else if (discord_status === 'idle') {
-              setDiscordActivity('Away');
-            } else if (discord_status === 'dnd') {
-              setDiscordActivity('Do Not Disturb');
-            } else {
-              setDiscordActivity('Offline');
-            }
+          // Show Lanyard values directly (no friendly remapping)
+          if (listening_to_spotify && parsedData.data.spotify) {
+            const song = parsedData.data.spotify.song ?? '';
+            const artist = parsedData.data.spotify.artist ?? '';
+            const spotifyText = [song, artist].filter(Boolean).join(' — ');
+            setDiscordActivity(spotifyText || 'spotify');
+            return;
           }
+
+          if (activities && activities.length > 0) {
+            const activity = activities[0];
+            const rawText = [activity.name, activity.details, activity.state]
+              .filter((value): value is string => Boolean(value && value.trim().length > 0))
+              .join(' | ');
+            setDiscordActivity(rawText || (discord_status ?? 'offline'));
+            return;
+          }
+
+          setDiscordActivity(discord_status ?? 'offline');
         }
       } catch (error) {
         console.error('Failed to fetch Discord activity:', error);
-        // Set fallback status
-        setDiscordActivity('Available online');
-        setDiscordStatus('online');
       }
     };
 
@@ -575,14 +672,12 @@ export default function Terminal() {
       .replace(/(^-|-$)/g, '');
   };
 
-  const formatTreeBranch = (items: string[], prefix: string): string => {
+  const formatTreeBranch = (items: string[], prefix: string): string[] => {
     if (!items.length) {
-      return `${prefix}└── (empty)/`;
+      return [`${prefix}└── (empty)/`];
     }
 
-    return items
-      .map((item, index) => `${prefix}${index === items.length - 1 ? '└──' : '├──'} ${item}/`)
-      .join('\n');
+    return items.map((item, index) => `${prefix}${index === items.length - 1 ? '└──' : '├──'} ${item}/`);
   };
 
   // Calculate Levenshtein distance for command suggestions
@@ -1137,10 +1232,11 @@ Example: theme tokyo-night`);
         break;
 
       case 'tree':
-        addOutput(`${directoryTreeText}
-
-      Use: cd <section> to navigate
-      Use: cd projects/<slug> to open a project directly`);
+        {
+          const nextShowTreePanel = !showTreePanel;
+          setShowTreePanel(nextShowTreePanel);
+          addOutput(nextShowTreePanel ? 'Tree panel enabled. Type tree again to hide.' : 'Tree panel hidden.');
+        }
         break;
 
       case 'git push':
@@ -1238,7 +1334,8 @@ Check your downloads folder.`);
             .replace(/\/$/, '');
 
           const resolvePathParts = (pathValue: string): string[] => {
-            const baseParts = pathValue.startsWith('/') ? [] : currentVirtualPathParts;
+            const isAbsolutePath = pathValue.startsWith('/') || /^(home|public)(\/|$)/.test(pathValue);
+            const baseParts = isAbsolutePath ? [] : currentVirtualPathParts;
             const incomingParts = pathValue.replace(/^\/+/, '').split('/').filter(Boolean);
             const stack = [...baseParts];
 
@@ -1284,11 +1381,9 @@ Check your downloads folder.`);
               return true;
             }
 
-            if (resolvedParts[1] !== 'dylan') {
-              return false;
-            }
-
-            const localParts = resolvedParts.slice(2);
+            const localParts = resolvedParts[1] === 'dylan'
+              ? resolvedParts.slice(2)
+              : resolvedParts.slice(1);
 
             if (localParts.length === 0) {
               executeCommand('home');
@@ -1597,13 +1692,13 @@ Check your downloads folder.`);
           addOutput(`SESSION STATISTICS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⏱️  Session Time:      ${timeStr}
-📊 Commands Run:       ${commandCount}
-🗂️  Sections Visited:  ${sectionsVisited.size} (${sectionsStr})
-⭐ Most Used Command: ${mostUsedCmd ? `${mostUsedCmd[0]} (${mostUsedCmd[1]}x)` : 'N/A'}
-💾 Commands in History: ${commandHistory.length}
+Session Time:      ${timeStr}
+Commands Run:       ${commandCount}
+Sections Visited:  ${sectionsVisited.size} (${sectionsStr})
+Most Used Command: ${mostUsedCmd ? `${mostUsedCmd[0]} (${mostUsedCmd[1]}x)` : 'N/A'}
+Commands in History: ${commandHistory.length}
 
-🎯 Keep exploring!`);
+Keep exploring!`);
           return;
         }
 
@@ -1668,7 +1763,7 @@ Check your downloads folder.`);
           }
           setDebugMode(true);
           const performanceMemory = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
-          const debugInfo = `DEBUG MODE ENABLED 🐛
+          const debugInfo = `DEBUG MODE ENABLED 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 [REACT STATE]
@@ -2038,14 +2133,14 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
 
   // Focus input on desktop only
   useEffect(() => {
-    if (window.innerWidth > 768 && !showTetris && !showSnake) {
+    if (window.innerWidth > 768 && !showTetris && !showSnake && !isBooting) {
       inputRef.current?.focus();
     }
-  }, [showTetris, showSnake]);
+  }, [showTetris, showSnake, isBooting]);
   
   const handleLayoutClick = () => {
     // Only focus input on desktop, not on mobile, and not when games are open
-    if (window.innerWidth > 768 && !showTetris && !showSnake) {
+    if (window.innerWidth > 768 && !showTetris && !showSnake && !isBooting) {
       inputRef.current?.focus();
     }
   };
@@ -2070,10 +2165,10 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
 
     return { category, index, project };
   }, [currentSubsection]);
-  const sessionSeconds = Math.floor((systemNow.getTime() - sessionStart) / 1000);
+  const sessionSeconds = hasHydrated ? Math.floor((systemNow.getTime() - sessionStart) / 1000) : 0;
   const uptimeMinutes = Math.floor(sessionSeconds / 60);
   const uptimeRemainderSeconds = sessionSeconds % 60;
-  const currentClock = systemNow.toLocaleTimeString('en-GB', { hour12: false });
+  const currentClock = hasHydrated ? systemNow.toLocaleTimeString('en-GB', { hour12: false }) : '--:--:--';
   const majorProjectSlugs = useMemo(
     () => majorProjects.map((project) => createProjectSlug(project.name)),
     []
@@ -2084,32 +2179,32 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
   );
   const currentVirtualPathParts = useMemo(() => {
     if (selectedProject) {
-      return ['home', 'dylan', 'projects', selectedProject.category, createProjectSlug(selectedProject.project.name)];
+      return ['home', 'projects', selectedProject.category, createProjectSlug(selectedProject.project.name)];
     }
 
     if (currentSection === 'home') {
-      return ['home', 'dylan'];
+      return ['home'];
     }
 
     if (currentSection === 'about') {
-      if (currentSubsection === 'bio') return ['home', 'dylan', 'about', 'bio.txt'];
-      if (currentSubsection === 'skills') return ['home', 'dylan', 'about', 'skills.json'];
-      if (currentSubsection === 'frameworks') return ['home', 'dylan', 'about', 'frameworks.md'];
-      if (currentSubsection === 'experience') return ['home', 'dylan', 'about', 'experience'];
-      return ['home', 'dylan', 'about'];
+      if (currentSubsection === 'bio') return ['home', 'about', 'bio.txt'];
+      if (currentSubsection === 'skills') return ['home', 'about', 'skills.json'];
+      if (currentSubsection === 'frameworks') return ['home', 'about', 'frameworks.md'];
+      if (currentSubsection === 'experience') return ['home', 'about', 'experience'];
+      return ['home', 'about'];
     }
 
     if (currentSection === 'projects') {
-      if (currentSubsection === 'major') return ['home', 'dylan', 'projects', 'major'];
-      if (currentSubsection === 'minor') return ['home', 'dylan', 'projects', 'minor'];
-      return ['home', 'dylan', 'projects'];
+      if (currentSubsection === 'major') return ['home', 'projects', 'major'];
+      if (currentSubsection === 'minor') return ['home', 'projects', 'minor'];
+      return ['home', 'projects'];
     }
 
     if (currentSection === 'contact') {
-      return ['home', 'dylan', 'contact'];
+      return ['home', 'contact'];
     }
 
-    return ['home', 'dylan'];
+    return ['home'];
   }, [currentSection, currentSubsection, selectedProject]);
 
   const activeTreeNode = useMemo(() => {
@@ -2130,27 +2225,25 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
 
     return `${currentSection}/`;
   }, [currentSection, currentSubsection, selectedProject]);
-  const directoryTreeText = useMemo(() => `/
-├── home/
-│   └── dylan/
-│       ├── about/
-│       │   ├── bio.txt
-│       │   ├── skills.json
-│       │   └── frameworks.md
-│       ├── projects/
-│       │   ├── major/
-${formatTreeBranch(majorProjectSlugs, '│       │   │   ')}
-│       │   └── minor/
-${formatTreeBranch(minorProjectSlugs, '│       │       ')}
-│       ├── contact/
-│       │   ├── email.link
-│       │   ├── github.link
-│       │   ├── linkedin.link
-│       │   └── instagram.link
-│       └── resume/
-│           └── Dylan_van_der_Ven_Resume.pdf (installable)
-└── public/
-    └── portfolio.html`, [majorProjectSlugs, minorProjectSlugs]);
+  const directoryTreeText = useMemo(() => [
+    'home/',
+    '  ├── about/',
+    '  │   ├── bio.txt',
+    '  │   ├── skills.json',
+    '  │   └── frameworks.md',
+    '  ├── projects/',
+    '  │   ├── major/',
+    ...formatTreeBranch(majorProjectSlugs, '  │   │   '),
+    '  │   └── minor/',
+    ...formatTreeBranch(minorProjectSlugs, '  │       '),
+    '  ├── contact/',
+    '  │   ├── email.link',
+    '  │   ├── github.link',
+    '  │   ├── linkedin.link',
+    '  │   └── instagram.link',
+    '  └── resume/',
+    '      └── Dylan_van_der_Ven_Resume.pdf (installable)',
+  ].join('\n'), [majorProjectSlugs, minorProjectSlugs]);
 
   const directoryTreeHtml = useMemo(() => {
     const escapedTreeNode = activeTreeNode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -2198,10 +2291,10 @@ ${formatTreeBranch(minorProjectSlugs, '│       │       ')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             className="terminal-input"
-            placeholder={sudoMode ? '' : "Type 'help' for commands..."}
+            placeholder={sudoMode ? '' : isBooting ? 'Booting system...' : "Type 'help' for commands..."}
             autoComplete="off"
             spellCheck="false"
-            disabled={showTetris || showSnake || showFake404}
+            disabled={showTetris || showSnake || showFake404 || isBooting}
           />
         </form>
         </div>
@@ -2214,9 +2307,11 @@ ${formatTreeBranch(minorProjectSlugs, '│       │       ')}
           <div className="diag-row"><span>Commands: </span><strong>{commandCount}</strong></div>
         </div>
 
-        <div className="visual-content directory-panel">
-          <pre className="directory-tree" dangerouslySetInnerHTML={{ __html: directoryTreeHtml }} />
-        </div>
+        {showTreePanel && (
+          <div className="visual-content directory-panel">
+            <pre className="directory-tree" dangerouslySetInnerHTML={{ __html: directoryTreeHtml }} />
+          </div>
+        )}
         <div className="visual-content load-panel">
           <div className="diag-row"><span>Uptime </span><strong>{uptimeMinutes}m {uptimeRemainderSeconds}s</strong></div>
           <div className="load-row"><span>CPU</span><span>{cpuLoad}%</span></div>
