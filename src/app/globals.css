@@ -14,8 +14,8 @@ html, body {
   /* Realistic Terminal Colors - Default Theme */
   --terminal-green: #00ff00;
   --terminal-white: #e0e0e0;
-  --terminal-gray: #a0a0a0;
-  --terminal-dim: #606060;
+  --terminal-gray: #b0b0b0;
+  --terminal-dim: #858585;
   --terminal-bg: #1e1e1e;
   --terminal-bg-light: #2d2d2d;
   --terminal-border: #3e3e3e;
@@ -28,7 +28,7 @@ html, body {
 :root[data-theme="green"] {
   --terminal-white: #33cc33;
   --terminal-gray: #229922;
-  --terminal-dim: #116611;
+  --terminal-dim: #4d994d;
   --terminal-bg: #000000;
   --terminal-bg-light: #0a0a0a;
   --terminal-border: #1a4d1a;
@@ -41,7 +41,7 @@ html, body {
 :root[data-theme="amber"] {
   --terminal-white: #ffb000;
   --terminal-gray: #cc8800;
-  --terminal-dim: #886600;
+  --terminal-dim: #b38600;
   --terminal-bg: #1a1200;
   --terminal-bg-light: #2a1f00;
   --terminal-border: #cc8800;
@@ -53,8 +53,8 @@ html, body {
 /* Dracula Theme */
 :root[data-theme="dracula"] {
   --terminal-white: #f8f8f2;
-  --terminal-gray: #6272a4;
-  --terminal-dim: #44475a;
+  --terminal-gray: #8090cc;
+  --terminal-dim: #8891b5;
   --terminal-bg: #282a36;
   --terminal-bg-light: #343746;
   --terminal-border: #6272a4;
@@ -66,27 +66,27 @@ html, body {
 /* Monokai Theme */
 :root[data-theme="monokai"] {
   --terminal-white: #f8f8f2;
-  --terminal-gray: #75715e;
-  --terminal-dim: #49483e;
+  --terminal-gray: #949087;
+  --terminal-dim: #949087;
   --terminal-bg: #272822;
   --terminal-bg-light: #3e3d32;
   --terminal-border: #75715e;
   --terminal-accent: #66d9ef;
   --terminal-success: #a6e22e;
-  --terminal-error: #f92672;
+  --terminal-error: #ff6b9d;
 }
 
 /* Nord Theme */
 :root[data-theme="nord"] {
   --terminal-white: #eceff4;
   --terminal-gray: #d8dee9;
-  --terminal-dim: #4c566a;
+  --terminal-dim: #8d9ebc;
   --terminal-bg: #2e3440;
   --terminal-bg-light: #3b4252;
   --terminal-border: #5e81ac;
   --terminal-accent: #88c0d0;
   --terminal-success: #a3be8c;
-  --terminal-error: #bf616a;
+  --terminal-error: #d4897a;
 }
 
 /* High Contrast Accessibility Theme (WCAG AAA) */
@@ -105,47 +105,47 @@ html, body {
 /* Solarized Dark Theme */
 :root[data-theme="solarized-dark"] {
   --terminal-white: #839496;
-  --terminal-gray: #657b83;
-  --terminal-dim: #586e75;
+  --terminal-gray: #819cac;
+  --terminal-dim: #8fa8b5;
   --terminal-bg: #002b36;
   --terminal-bg-light: #073642;
   --terminal-border: #586e75;
-  --terminal-accent: #268bd2;
+  --terminal-accent: #4fa8e8;
   --terminal-success: #859900;
-  --terminal-error: #dc322f;
+  --terminal-error: #ef6060;
 }
 
 /* Solarized Light Theme */
 :root[data-theme="solarized-light"] {
-  --terminal-white: #657b83;
-  --terminal-gray: #839496;
-  --terminal-dim: #93a1a1;
+  --terminal-white: #4a6272;
+  --terminal-gray: #4a6272;
+  --terminal-dim: #517777;
   --terminal-bg: #fdf6e3;
   --terminal-bg-light: #eee8d5;
   --terminal-border: #93a1a1;
-  --terminal-accent: #268bd2;
-  --terminal-success: #859900;
-  --terminal-error: #dc322f;
+  --terminal-accent: #1a6aad;
+  --terminal-success: #5a7a00;
+  --terminal-error: #b21c1a;
 }
 
 /* Gruvbox Theme */
 :root[data-theme="gruvbox"] {
   --terminal-white: #ebdbb2;
   --terminal-gray: #a89984;
-  --terminal-dim: #7c6f64;
+  --terminal-dim: #a48c7e;
   --terminal-bg: #282828;
   --terminal-bg-light: #3c3836;
   --terminal-border: #504945;
   --terminal-accent: #83a598;
   --terminal-success: #b8bb26;
-  --terminal-error: #fb4934;
+  --terminal-error: #fe6e57;
 }
 
 /* Tokyo Night Theme */
 :root[data-theme="tokyo-night"] {
   --terminal-white: #a9b1d6;
-  --terminal-gray: #565f89;
-  --terminal-dim: #414868;
+  --terminal-gray: #7681b5;
+  --terminal-dim: #7681b5;
   --terminal-bg: #1a1b26;
   --terminal-bg-light: #24283b;
   --terminal-border: #414868;
@@ -157,34 +157,34 @@ html, body {
 /* One Dark Theme */
 :root[data-theme="one-dark"] {
   --terminal-white: #abb2bf;
-  --terminal-gray: #5c6370;
-  --terminal-dim: #4b5263;
+  --terminal-gray: #8f96a3;
+  --terminal-dim: #8f96a3;
   --terminal-bg: #282c34;
   --terminal-bg-light: #2c323c;
   --terminal-border: #4b5263;
   --terminal-accent: #61afef;
   --terminal-success: #98c379;
-  --terminal-error: #e06c75;
+  --terminal-error: #e87c88;
 }
 
 /* Synthwave Theme */
 :root[data-theme="synthwave"] {
-  --terminal-white: #f92aad;
+  --terminal-white: #ff5ec4;
   --terminal-gray: #ff7edb;
-  --terminal-dim: #b45f9a;
+  --terminal-dim: #d47db8;
   --terminal-bg: #2b213a;
   --terminal-bg-light: #362749;
   --terminal-border: #ff7edb;
   --terminal-accent: #72f1b8;
   --terminal-success: #72f1b8;
-  --terminal-error: #fe4450;
+  --terminal-error: #ff6070;
 }
 
 /* Matrix Theme */
 :root[data-theme="matrix"] {
   --terminal-white: #00ff41;
   --terminal-gray: #008f11;
-  --terminal-dim: #003b00;
+  --terminal-dim: #1aaa1a;
   --terminal-bg: #000000;
   --terminal-bg-light: #0d0208;
   --terminal-border: #008f11;
