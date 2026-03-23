@@ -182,7 +182,7 @@ export default function Snake({ onClose }: SnakeProps) {
       <div className="snake-container">
         <div className="snake-header">
           <h2>SNAKE</h2>
-          <button className="snake-close" onClick={onClose}>×</button>
+          <button className="snake-close" onClick={onClose} aria-label="Close Snake">×</button>
         </div>
 
         <div className="snake-game">
@@ -204,7 +204,7 @@ export default function Snake({ onClose }: SnakeProps) {
                 <h2>GAME OVER</h2>
                 <p>Score: {score}</p>
                 <p>Length: {snake.length}</p>
-                <button onClick={resetGame}>Restart</button>
+                <button onClick={resetGame} aria-label="Restart Snake game">Restart</button>
               </div>
             )}
             {isPaused && (

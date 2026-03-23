@@ -421,7 +421,7 @@ export default function Tetris({ onClose }: TetrisProps) {
       <div className="tetris-container">
         <div className="tetris-header">
           <h2>TETRIS</h2>
-          <button className="tetris-close" onClick={onClose}>×</button>
+          <button className="tetris-close" onClick={onClose} aria-label="Close Tetris">×</button>
         </div>
         
         <div className="tetris-game">
@@ -442,7 +442,7 @@ export default function Tetris({ onClose }: TetrisProps) {
               <div className="tetris-game-over">
                 <h2>GAME OVER</h2>
                 <p>Score: {score}</p>
-                <button onClick={resetGame}>Restart</button>
+                <button onClick={resetGame} aria-label="Restart Tetris game">Restart</button>
               </div>
             )}
             {isPaused && (

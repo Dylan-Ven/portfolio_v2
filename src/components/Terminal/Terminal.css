@@ -387,7 +387,7 @@
 
 .terminal-input::placeholder {
   color: var(--terminal-gray);
-  opacity: 0.4;
+  opacity: 1;
 }
 
 .terminal-submit {

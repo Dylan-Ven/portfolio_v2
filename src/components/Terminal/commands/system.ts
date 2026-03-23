@@ -229,7 +229,7 @@ export const buildBacklogResponse = (learningBacklog: BacklogItem[], subcommand 
 
 interface SystemCommandDeps {
 	addOutput: (content: string, type?: 'output' | 'error') => void;
-	getHelpOutput: () => string;
+	getHelpOutput: () => string | Promise<string>;
 	clearHistory: () => void;
 	toggleTreePanel: () => void;
 	runGitPushPrank: () => void;
@@ -252,7 +252,7 @@ export const createSystemCommandHandlers = ({
 	setDebugPreference,
 	setCustomPrompt,
 }: SystemCommandDeps): ExactCommandHandlers => ({
-	help: () => addOutput(getHelpOutput()),
+	help: () => { void Promise.resolve(getHelpOutput()).then((o) => addOutput(o)); },
 	clear: clearHistory,
 	tree: toggleTreePanel,
 	'git-push': runGitPushPrank,

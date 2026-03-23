@@ -1,52 +1,30 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// Portfolio data is small and used at render time (tree panel, email, path resolution)
 import { projectsData, majorProjects, minorProjects, skillsData, contactData, experienceData, learningBacklog } from '@/data/portfolio';
-import { normalizeCommandInput, resolveExactCommand, sanitizeCommandInput, type ExactCommandId } from './commandCatalog';
-import {
-  buildAboutOverviewOutput,
-  buildBacklogResponse,
-  buildBioOutput,
-  buildContactOverviewOutput,
-  buildExperienceOutput,
-  buildFrameworksOutput,
-  createAboutCommandHandlers,
-  createContactCommandHandlers,
-  createEasterEggCommandHandlers,
-  createGameCommandHandlers,
-  createNavigationCommandHandlers,
-  createPreferenceCommandHandlers,
-  createProjectsCommandHandlers,
-  createSystemCommandHandlers,
-  createThemeCommandHandlers,
-  buildHelpOutput,
-  buildHomeOutput,
-  buildNeofetchOutput,
-  buildProjectDetailsOutput,
-  buildProjectListOutput,
-  buildProjectsAliasOutput,
-  buildProjectsOverviewOutput,
-  buildSkillsOutput,
-  buildStatsOutput,
-  buildThemesOutput,
-  handleBacklogFilterCommand,
-  handleCdCommand,
-  handleContactByPath,
-  handleContactShortcutCommand,
-  handleHackCommand,
-  handlePromptSetCommand,
-  handleProjectContextShortcutCommand,
-  handleResumeInstallCommand,
-  handleThemeCommand,
-} from './commands';
+// Boot-time-only helpers — kept static so the home screen renders without waiting
+import { buildHomeOutput } from './commands/navigation';
 import './Terminal.css';
 import {
   buildBootSequence,
   createProjectSlug,
-  findSimilarCommand,
   formatTreeBranch,
 } from './utils/commands';
 import { smoothScrollToBottom } from './utils/scroll';
+
+// ── Lazy command runtime ─────────────────────────────────────────────────────
+// All command builders, output formatters, and catalog resolvers are bundled
+// into a single chunk that is only fetched when the user first submits a command.
+type TerminalRuntime = typeof import('./runtime');
+let runtimeCache: TerminalRuntime | null = null;
+const loadRuntime = (): Promise<TerminalRuntime> => {
+  if (runtimeCache) return Promise.resolve(runtimeCache);
+  return import('./runtime').then((m) => {
+    runtimeCache = m;
+    return m;
+  });
+};
 
 type Section = 'home' | 'about' | 'projects' | 'contact';
 type Subsection = string | null;
@@ -84,48 +62,13 @@ export default function Terminal() {
   const [currentSubsection, setCurrentSubsection] = useState<Subsection>(null);
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<TerminalLine[]>([]);
-  const [commandHistory, setCommandHistory] = useState<string[]>(() => {
-    // Load from localStorage on mount
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('terminal-command-history');
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [typingEffect, setTypingEffect] = useState<boolean>(() => {
-    // Load typing effect preference from localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('terminal-typing-effect');
-      return saved === 'true'; // Default to false if not set
-    }
-    return false;
-  });
+  const [typingEffect, setTypingEffect] = useState<boolean>(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<string>(() => {
-    // Load theme preference from localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('terminal-theme');
-      return saved || 'default';
-    }
-    return 'default';
-  });
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
-    // Load sound preference from localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('terminal-sound');
-      return saved === 'true';
-    }
-    return false;
-  });
-  const [crtEffect, setCrtEffect] = useState<boolean>(() => {
-    // Load CRT effect preference from localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('terminal-crt');
-      return saved === 'true';
-    }
-    return false;
-  });
+  const [currentTheme, setCurrentTheme] = useState<string>('default');
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+  const [crtEffect, setCrtEffect] = useState<boolean>(false);
   const [isBooting, setIsBooting] = useState(true);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [sessionStart] = useState<number>(Date.now());
@@ -133,14 +76,7 @@ export default function Terminal() {
   const [sectionsVisited, setSectionsVisited] = useState<Set<string>>(new Set(['home']));
   const [commandFrequency, setCommandFrequency] = useState<Map<string, number>>(new Map());
   const [debugMode, setDebugMode] = useState<boolean>(false);
-  const [customPrompt, setCustomPrompt] = useState<string>(() => {
-    // Load custom prompt from localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('terminal-prompt');
-      return saved || '$';
-    }
-    return '$';
-  });
+  const [customPrompt, setCustomPrompt] = useState<string>('$');
   const [discordActivity, setDiscordActivity] = useState<string>('Online');
   const [discordStatus, setDiscordStatus] = useState<'online' | 'idle' | 'dnd' | 'offline'>('online');
   const [particles, setParticles] = useState<Array<{id: number, x: number, y: number}>>([]);
@@ -231,11 +167,6 @@ export default function Terminal() {
     };
 
     bootSequence();
-    
-    // Apply saved theme
-    if (currentTheme !== 'default') {
-      document.documentElement.setAttribute('data-theme', currentTheme);
-    }
 
     return () => {
       cancelled = true;
@@ -243,26 +174,93 @@ export default function Terminal() {
   }, []);
   /* eslint-enable react-hooks/exhaustive-deps */
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const savedCommandHistory = localStorage.getItem('terminal-command-history');
+      const savedTypingEffect = localStorage.getItem('terminal-typing-effect');
+      const savedTheme = localStorage.getItem('terminal-theme');
+      const savedSound = localStorage.getItem('terminal-sound');
+      const savedCrt = localStorage.getItem('terminal-crt');
+      const savedPrompt = localStorage.getItem('terminal-prompt');
+
+      if (savedCommandHistory) {
+        setCommandHistory(JSON.parse(savedCommandHistory) as string[]);
+      }
+
+      if (savedTypingEffect === 'true') {
+        setTypingEffect(true);
+      }
+
+      if (savedTheme) {
+        setCurrentTheme(savedTheme);
+      }
+
+      if (savedSound === 'true') {
+        setSoundEnabled(true);
+      }
+
+      if (savedCrt === 'true') {
+        setCrtEffect(true);
+      }
+
+      if (savedPrompt) {
+        setCustomPrompt(savedPrompt);
+      }
+    } catch {
+      localStorage.removeItem('terminal-command-history');
+    } finally {
+      setHasHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated || typeof document === 'undefined') {
+      return;
+    }
+
+    if (currentTheme === 'default') {
+      document.documentElement.removeAttribute('data-theme');
+      return;
+    }
+
+    document.documentElement.setAttribute('data-theme', currentTheme);
+  }, [currentTheme, hasHydrated]);
+
   // Save command history to localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined' && commandHistory.length > 0) {
-      localStorage.setItem('terminal-command-history', JSON.stringify(commandHistory));
+    if (!hasHydrated || typeof window === 'undefined') {
+      return;
     }
-  }, [commandHistory]);
+
+    if (commandHistory.length > 0) {
+      localStorage.setItem('terminal-command-history', JSON.stringify(commandHistory));
+      return;
+    }
+
+    localStorage.removeItem('terminal-command-history');
+  }, [commandHistory, hasHydrated]);
 
   // Save CRT effect preference and apply class
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('terminal-crt', String(crtEffect));
+    if (!hasHydrated || typeof window === 'undefined') {
+      return;
     }
-  }, [crtEffect]);
+
+    localStorage.setItem('terminal-crt', String(crtEffect));
+  }, [crtEffect, hasHydrated]);
 
   // Save custom prompt preference
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('terminal-prompt', customPrompt);
+    if (!hasHydrated || typeof window === 'undefined') {
+      return;
     }
-  }, [customPrompt]);
+
+    localStorage.setItem('terminal-prompt', customPrompt);
+  }, [customPrompt, hasHydrated]);
 
   // Cleanup typing timeout on unmount
   useEffect(() => {
@@ -278,10 +276,6 @@ export default function Terminal() {
       gitPushTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       gitPushTimeoutsRef.current = [];
     };
-  }, []);
-
-  useEffect(() => {
-    setHasHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -536,8 +530,9 @@ export default function Terminal() {
     setCurrentSubsection(null);
   };
 
-  const getHelpOutput = (): string => {
-    return buildHelpOutput({
+  const getHelpOutput = async (): Promise<string> => {
+    const rt = await loadRuntime();
+    return rt.buildHelpOutput({
       currentSection,
       currentSubsection,
       majorProjects,
@@ -718,50 +713,57 @@ Check your downloads folder.`);
     ];
   };
 
-  const showAboutOverview = () => {
+  const showAboutOverview = async () => {
     clearHistory();
     showAboutMenu();
-    addOutput(buildAboutOverviewOutput());
+    const rt = await loadRuntime();
+    addOutput(rt.buildAboutOverviewOutput());
   };
 
-  const showBioContent = () => {
+  const showBioContent = async () => {
     setCurrentSubsection('bio');
     clearHistory();
-    addOutput(buildBioOutput());
+    const rt = await loadRuntime();
+    addOutput(rt.buildBioOutput());
   };
 
-  const showSkillsContent = () => {
+  const showSkillsContent = async () => {
     setCurrentSubsection('skills');
     clearHistory();
-    addOutput(buildSkillsOutput(skillsData));
+    const rt = await loadRuntime();
+    addOutput(rt.buildSkillsOutput(skillsData));
   };
 
-  const showFrameworksContent = () => {
+  const showFrameworksContent = async () => {
     setCurrentSubsection('frameworks');
     clearHistory();
-    addOutput(buildFrameworksOutput(skillsData));
+    const rt = await loadRuntime();
+    addOutput(rt.buildFrameworksOutput(skillsData));
   };
 
-  const showExperienceContent = () => {
+  const showExperienceContent = async () => {
     setCurrentSubsection('experience');
     clearHistory();
-    addOutput(buildExperienceOutput(experienceData));
+    const rt = await loadRuntime();
+    addOutput(rt.buildExperienceOutput(experienceData));
   };
 
-  const showProjectsOverview = () => {
+  const showProjectsOverview = async () => {
     clearHistory();
     showProjectsMenu();
-    addOutput(buildProjectsOverviewOutput(majorProjects.length, minorProjects.length));
+    const rt = await loadRuntime();
+    addOutput(rt.buildProjectsOverviewOutput(majorProjects.length, minorProjects.length));
   };
 
-  const showProjectsAliasListing = () => {
+  const showProjectsAliasListing = async () => {
     clearHistory();
     setCurrentSection('projects');
     setCurrentSubsection(null);
-    addOutput(buildProjectsAliasOutput(projectsData));
+    const rt = await loadRuntime();
+    addOutput(rt.buildProjectsAliasOutput(projectsData));
   };
 
-  const showMajorProjectsList = () => {
+  const showMajorProjectsList = async () => {
     if (currentSection !== 'projects') {
       addOutput('undefined', 'error');
       return;
@@ -769,10 +771,11 @@ Check your downloads folder.`);
 
     setCurrentSubsection('major');
     clearHistory();
-    addOutput(buildProjectListOutput('MAJOR PROJECTS', majorProjects));
+    const rt = await loadRuntime();
+    addOutput(rt.buildProjectListOutput('MAJOR PROJECTS', majorProjects));
   };
 
-  const showMinorProjectsList = () => {
+  const showMinorProjectsList = async () => {
     if (currentSection !== 'projects') {
       addOutput('undefined', 'error');
       return;
@@ -780,13 +783,15 @@ Check your downloads folder.`);
 
     setCurrentSubsection('minor');
     clearHistory();
-    addOutput(buildProjectListOutput('MINOR PROJECTS', minorProjects));
+    const rt = await loadRuntime();
+    addOutput(rt.buildProjectListOutput('MINOR PROJECTS', minorProjects));
   };
 
-  const showContactOverview = () => {
+  const showContactOverview = async () => {
     clearHistory();
     showContactMenu();
-    addOutput(buildContactOverviewOutput(contactData, discordActivity));
+    const rt = await loadRuntime();
+    addOutput(rt.buildContactOverviewOutput(contactData, discordActivity));
   };
 
   const applyThemePreference = (themeName: string) => {
@@ -837,8 +842,9 @@ Check your downloads folder.`);
     addOutput(`✓ CRT screen effect ${enabled ? 'enabled 📺' : 'disabled'}`);
   };
 
-  const showThemesOutput = () => {
-    addOutput(buildThemesOutput());
+  const showThemesOutput = async () => {
+    const rt = await loadRuntime();
+    addOutput(rt.buildThemesOutput());
   };
 
   const toggleTreePanel = () => {
@@ -862,8 +868,9 @@ Check your downloads folder.`);
     setTimeout(() => setShowSnake(true), 500);
   };
 
-  const showStatsOutput = () => {
-    addOutput(buildStatsOutput({
+  const showStatsOutput = async () => {
+    const rt = await loadRuntime();
+    addOutput(rt.buildStatsOutput({
       sessionStart,
       commandFrequency,
       sectionsVisited,
@@ -872,12 +879,14 @@ Check your downloads folder.`);
     }));
   };
 
-  const showNeofetchOutput = () => {
-    addOutput(buildNeofetchOutput({ sessionStart, currentTheme, discordActivity }));
+  const showNeofetchOutput = async () => {
+    const rt = await loadRuntime();
+    addOutput(rt.buildNeofetchOutput({ sessionStart, currentTheme, discordActivity }));
   };
 
-  const showBacklogOutput = (subcommand: string = 'all') => {
-    const response = buildBacklogResponse(learningBacklog, subcommand);
+  const showBacklogOutput = async (subcommand: string = 'all') => {
+    const rt = await loadRuntime();
+    const response = rt.buildBacklogResponse(learningBacklog, subcommand);
     addOutput(response.content, response.type);
   };
 
@@ -927,15 +936,18 @@ Type 'debug off' to disable`;
     addOutput(debugInfo);
   };
 
-  const executeCommand = (cmd: string) => {
-    const sanitizedCmd = sanitizeCommandInput(cmd);
-    const trimmedCmd = normalizeCommandInput(sanitizedCmd);
-    
+  const executeCommand = async (cmd: string) => {
+    // Load the runtime chunk (cached after first call)
+    const rt = await loadRuntime();
+
+    const sanitizedCmd = rt.sanitizeCommandInput(cmd);
+    const trimmedCmd = rt.normalizeCommandInput(sanitizedCmd);
+
     // Handle sudo password mode
     if (sudoMode) {
       setSudoMode(false);
       addInput('*'.repeat(sanitizedCmd.length));
-      addOutputWithDelay([
+      void addOutputWithDelay([
         'Authentication successful.',
         'Checking system privileges...',
         'Warning: You now have root access to absolutely nothing.',
@@ -943,11 +955,11 @@ Type 'debug off' to disable`;
       ]);
       return;
     }
-    
+
     addInput(sanitizedCmd);
     setCommandHistory(prev => [...prev, sanitizedCmd]);
     setHistoryIndex(-1);
-    playBeep(); // Play sound on command execution
+    playBeep();
 
     // Track stats
     setCommandCount(prev => prev + 1);
@@ -961,12 +973,12 @@ Type 'debug off' to disable`;
 
     // Check for number input (1-9)
     if (/^[1-9]$/.test(trimmedCmd)) {
-      handleNumberInput(parseInt(trimmedCmd));
+      void handleNumberInput(parseInt(trimmedCmd));
       return;
     }
 
     const exactCommandHandlers = {
-      ...createNavigationCommandHandlers({
+      ...rt.createNavigationCommandHandlers({
         addOutput,
         clearHistory,
         showLoading,
@@ -981,7 +993,7 @@ Type 'debug off' to disable`;
         showProjectsOverview,
         showProjectsAliasListing,
       }),
-      ...createAboutCommandHandlers({
+      ...rt.createAboutCommandHandlers({
         addOutput,
         showLoading,
         setSectionsVisited,
@@ -992,25 +1004,25 @@ Type 'debug off' to disable`;
         showFrameworksContent,
         showExperienceContent,
       }),
-      ...createProjectsCommandHandlers({
+      ...rt.createProjectsCommandHandlers({
         setSectionsVisited,
         showLoading,
         showProjectsOverview,
         showMajorProjectsList,
         showMinorProjectsList,
       }),
-      ...createContactCommandHandlers({
+      ...rt.createContactCommandHandlers({
         setSectionsVisited,
         showLoading,
         showContactOverview,
       }),
-      ...createPreferenceCommandHandlers({
+      ...rt.createPreferenceCommandHandlers({
         setTypingPreference,
         setSoundPreference,
         setCrtPreference,
       }),
-      ...createThemeCommandHandlers({ showThemesOutput }),
-      ...createSystemCommandHandlers({
+      ...rt.createThemeCommandHandlers({ showThemesOutput }),
+      ...rt.createSystemCommandHandlers({
         addOutput,
         getHelpOutput,
         clearHistory,
@@ -1022,40 +1034,40 @@ Type 'debug off' to disable`;
         setDebugPreference,
         setCustomPrompt,
       }),
-      ...createGameCommandHandlers({
+      ...rt.createGameCommandHandlers({
         launchTetris,
         launchSnake,
       }),
-      ...createEasterEggCommandHandlers({
+      ...rt.createEasterEggCommandHandlers({
         addOutput,
         addOutputWithDelay,
         setSudoMode,
       }),
-    } satisfies Partial<Record<ExactCommandId, () => void>>;
+    };
 
-    const exactCommand = resolveExactCommand(trimmedCmd);
+    const exactCommand = rt.resolveExactCommand(trimmedCmd);
     if (exactCommand) {
-      const exactHandler = exactCommandHandlers[exactCommand];
+      const exactHandler = exactCommandHandlers[exactCommand as keyof typeof exactCommandHandlers];
       if (exactHandler) {
-        exactHandler();
+        void (exactHandler as () => void | Promise<void>)();
         return;
       }
     }
 
-    if (handleThemeCommand({ trimmedCmd, addOutput, applyThemePreference })) {
+    if (rt.handleThemeCommand({ trimmedCmd, addOutput, applyThemePreference })) {
       return;
     }
 
-    if (handleCdCommand({
+    if (rt.handleCdCommand({
       trimmedCmd,
       currentVirtualPathParts,
-      createProjectSlug,
+      createProjectSlug: rt.createProjectSlug,
       majorProjects,
       minorProjects,
       openProjectDetails,
       executeCommand,
       addOutput,
-      openContactByPath: (contactPath: string) => handleContactByPath({
+      openContactByPath: (contactPath: string) => rt.handleContactByPath({
         contactPath,
         contactData,
         addOutput,
@@ -1066,71 +1078,67 @@ Type 'debug off' to disable`;
       return;
     }
 
+    if (rt.handleContactShortcutCommand({
+      trimmedCmd,
+      currentSection,
+      contactData,
+      addOutput,
+    })) {
+      return;
+    }
 
+    if (rt.handleResumeInstallCommand({
+      trimmedCmd,
+      triggerResumeDownload,
+    })) {
+      return;
+    }
 
-        if (handleContactShortcutCommand({
-          trimmedCmd,
-          currentSection,
-          contactData,
-          addOutput,
-        })) {
-          return;
-        }
+    if (rt.handleHackCommand({
+      trimmedCmd,
+      addOutput,
+      addOutputWithDelay,
+      setHistory,
+    })) {
+      return;
+    }
 
-        if (handleResumeInstallCommand({
-          trimmedCmd,
-          triggerResumeDownload,
-        })) {
-          return;
-        }
+    if (rt.handleBacklogFilterCommand({
+      trimmedCmd,
+      showBacklogOutput,
+    })) {
+      return;
+    }
 
-        if (handleHackCommand({
-          trimmedCmd,
-          addOutput,
-          addOutputWithDelay,
-          setHistory,
-        })) {
-          return;
-        }
+    if (rt.handlePromptSetCommand({
+      trimmedCmd,
+      sanitizedCmd,
+      setCustomPrompt,
+      addOutput,
+    })) {
+      return;
+    }
 
-        if (handleBacklogFilterCommand({
-          trimmedCmd,
-          showBacklogOutput,
-        })) {
-          return;
-        }
+    if (rt.handleProjectContextShortcutCommand({
+      trimmedCmd,
+      currentSubsection,
+      majorProjects,
+      minorProjects,
+      addOutput,
+    })) {
+      return;
+    }
 
-        if (handlePromptSetCommand({
-          trimmedCmd,
-          sanitizedCmd,
-          setCustomPrompt,
-          addOutput,
-        })) {
-          return;
-        }
-
-        if (handleProjectContextShortcutCommand({
-          trimmedCmd,
-          currentSubsection,
-          majorProjects,
-          minorProjects,
-          addOutput,
-        })) {
-          return;
-        }
-
-        
-
-        // Try to find similar command
-        const suggestion = findSimilarCommand(trimmedCmd);
-        if (suggestion) {
-          addOutput(`Command not found: ${sanitizedCmd}\nDid you mean '${suggestion}'?\nType 'help' for available commands`, 'error');
-        } else {
-          addOutput(`Command not found: ${sanitizedCmd}\nType 'help' for available commands`, 'error');
-        }
+    // Try to find similar command
+    const suggestion = rt.findSimilarCommand(trimmedCmd);
+    if (suggestion) {
+      addOutput(`Command not found: ${sanitizedCmd}\nDid you mean '${suggestion}'?\nType 'help' for available commands`, 'error');
+    } else {
+      addOutput(`Command not found: ${sanitizedCmd}\nType 'help' for available commands`, 'error');
+    }
   };
 
-  const openProjectDetails = (category: ProjectCategory, projectIndex: number) => {
+  const openProjectDetails = async (category: ProjectCategory, projectIndex: number) => {
     const projectList = category === 'major' ? majorProjects : minorProjects;
     const project = projectList[projectIndex];
 
@@ -1142,20 +1150,20 @@ Type 'debug off' to disable`;
     setCurrentSection('projects');
     setCurrentSubsection(`${category}-project-${projectIndex + 1}`);
     clearHistory();
-
-    addOutput(buildProjectDetailsOutput(project));
+    const rt = await loadRuntime();
+    addOutput(rt.buildProjectDetailsOutput(project));
   };
 
-  const handleNumberInput = (num: number) => {
+  const handleNumberInput = async (num: number) => {
     if (currentSection === 'about') {
       if (num === 1) {
-        showBioContent();
+        void showBioContent();
       } else if (num === 2) {
-        showSkillsContent();
+        void showSkillsContent();
       } else if (num === 3) {
-        showFrameworksContent();
+        void showFrameworksContent();
       } else if (num === 4) {
-        showExperienceContent();
+        void showExperienceContent();
       }
       return;
     }
@@ -1163,9 +1171,9 @@ Type 'debug off' to disable`;
     if (currentSection === 'projects') {
       if (!currentSubsection) {
         if (num === 1) {
-          showMajorProjectsList();
+          void showMajorProjectsList();
         } else if (num === 2) {
-          showMinorProjectsList();
+          void showMinorProjectsList();
         }
         return;
       }
@@ -1448,6 +1456,7 @@ Type 'debug off' to disable`;
             onChange={(e) => setInput(e.target.value)}
             className="terminal-input"
             placeholder={sudoMode ? '' : isBooting ? 'Booting system...' : "Type 'help' for commands..."}
+            aria-label={sudoMode ? 'Password input' : 'Terminal command input'}
             autoComplete="off"
             autoCapitalize="none"
             autoCorrect="off"
