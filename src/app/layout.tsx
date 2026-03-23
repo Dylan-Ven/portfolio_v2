@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import DeferredInsights from '@/components/DeferredInsights';
 import './globals.css';
 
 const SITE_URL = 'https://www.dylanvdven.xyz';
@@ -85,8 +84,7 @@ export default function RootLayout({
         <main>
           {children}
         </main>
-        <Analytics />
-        <SpeedInsights />
+        <DeferredInsights />
       </body>
     </html>
   );

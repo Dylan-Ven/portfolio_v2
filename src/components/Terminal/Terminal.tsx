@@ -149,6 +149,8 @@ export default function Terminal() {
   const [showSnake, setShowSnake] = useState<boolean>(false);
   const [showFake404, setShowFake404] = useState<boolean>(false);
   const [showTreePanel, setShowTreePanel] = useState<boolean>(false);
+  const [showVisualPanel, setShowVisualPanel] = useState<boolean>(false);
+  const [isDiagnosticsActive, setIsDiagnosticsActive] = useState<boolean>(false);
   const [systemNow, setSystemNow] = useState<Date>(new Date());
   const [cpuLoad, setCpuLoad] = useState<number>(32);
   const [memoryLoad, setMemoryLoad] = useState<number>(46);
@@ -282,8 +284,42 @@ export default function Terminal() {
     setHasHydrated(true);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(min-width: 1201px)');
+
+    const updateDiagnosticsActivity = () => {
+      const isDesktopViewport = mediaQuery.matches;
+      const isVisibleTab = document.visibilityState === 'visible';
+      const isOverlayOpen = showFake404 || showTetris || showSnake;
+      setShowVisualPanel(isDesktopViewport);
+      setIsDiagnosticsActive(isDesktopViewport && isVisibleTab && !isOverlayOpen);
+    };
+
+    updateDiagnosticsActivity();
+
+    const handleVisibilityChange = () => {
+      updateDiagnosticsActivity();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    mediaQuery.addEventListener('change', updateDiagnosticsActivity);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      mediaQuery.removeEventListener('change', updateDiagnosticsActivity);
+    };
+  }, [showFake404, showTetris, showSnake]);
+
   // Simulated diagnostics ticker
   useEffect(() => {
+    if (!isDiagnosticsActive) {
+      return;
+    }
+
     const interval = setInterval(() => {
       setSystemNow(new Date());
       setCpuLoad(prev => {
@@ -294,10 +330,10 @@ export default function Terminal() {
         const next = prev + (Math.random() * 8 - 4);
         return Math.max(12, Math.min(92, Math.round(next)));
       });
-    }, 1000);
+    }, 2000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isDiagnosticsActive]);
 
   // Fetch Discord activity via Lanyard
   useEffect(() => {
@@ -385,6 +421,14 @@ export default function Terminal() {
   // Auto-scroll to bottom when history changes
   useEffect(() => {
     if (contentRef.current) {
+      const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const isSmallViewport = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+      if (prefersReducedMotion || isSmallViewport) {
+        contentRef.current.scrollTop = contentRef.current.scrollHeight;
+        return;
+      }
+
       smoothScrollToBottom(contentRef.current);
     }
   }, [history]);
@@ -1424,6 +1468,7 @@ Type 'debug off' to disable`;
         </div>
       </div>
       
+      {showVisualPanel && (
       <div className="visual-panel">
         <div className="visual-content diagnostics-panel">
           <div className="diag-row"><span>Current Time: </span><strong>{currentClock}</strong></div>
@@ -1439,9 +1484,9 @@ Type 'debug off' to disable`;
         <div className="visual-content load-panel">
           <div className="diag-row"><span>Uptime </span><strong>{uptimeMinutes}m {uptimeRemainderSeconds}s</strong></div>
           <div className="load-row"><span>CPU</span><span>{cpuLoad}%</span></div>
-          <div className="load-bar"><div className="load-fill" style={{ width: `${cpuLoad}%` }} /></div>
+          <div className="load-bar"><div className="load-fill" style={{ '--load-scale': `${cpuLoad / 100}` } as React.CSSProperties} /></div>
           <div className="load-row"><span>Memory</span><span>{memoryLoad}%</span></div>
-          <div className="load-bar"><div className="load-fill memory" style={{ width: `${memoryLoad}%` }} /></div>
+          <div className="load-bar"><div className="load-fill memory" style={{ '--load-scale': `${memoryLoad / 100}` } as React.CSSProperties} /></div>
         </div>
         <div className="visual-content2">
           <div className="activity-status">
@@ -1456,6 +1501,7 @@ Type 'debug off' to disable`;
           </div>
         </div>
       </div>
+      )}
 
       {showFake404 && (
         <div className="fake-404-screen" role="alert" aria-live="assertive">
