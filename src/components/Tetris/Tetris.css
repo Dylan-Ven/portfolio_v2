@@ -40,7 +40,7 @@
 .tetris-header h2 {
   margin: 0;
   color: var(--terminal-accent);
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
   font-size: 24px;
 }
 
@@ -53,7 +53,7 @@
   height: 32px;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,7 +92,7 @@
 .tetris-info h3 {
   margin: 0 0 8px 0;
   color: var(--terminal-accent);
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
   font-size: 10px;
   text-align: center;
 }
@@ -100,7 +100,7 @@
 .tetris-score {
   text-align: center;
   color: var(--terminal-white);
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
   font-size: 18px;
   font-weight: bold;
 }
@@ -220,7 +220,7 @@
 .tetris-paused h2 {
   margin: 0 0 15px 0;
   color: var(--terminal-error);
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
 }
 
 .tetris-paused h2 {
@@ -231,7 +231,7 @@
 .tetris-paused p {
   margin: 0 0 20px 0;
   color: var(--terminal-white);
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
 }
 
 .tetris-game-over button {
@@ -240,10 +240,10 @@
   color: #000;
   padding: 10px 20px;
   border-radius: 4px;
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s;
 }
 
 .tetris-game-over button:hover {
@@ -262,7 +262,7 @@
 .tetris-controls h3 {
   margin: 0 0 8px 0;
   color: var(--terminal-accent);
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
   font-size: 14px;
   font-weight: bold;
   text-align: center;
@@ -276,7 +276,7 @@
 
 .tetris-control-list div {
   color: var(--terminal-white);
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
   font-size: 13px;
   padding: 3px 6px;
   background: rgba(0, 0, 0, 0.3);

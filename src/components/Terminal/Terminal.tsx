@@ -2,7 +2,43 @@
 import dynamic from 'next/dynamic';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { projectsData, majorProjects, minorProjects, skillsData, contactData, experienceData, learningBacklog } from '@/data/portfolio';
-import { AVAILABLE_COMMANDS, VALID_THEMES, normalizeCommandInput, resolveExactCommand, sanitizeCommandInput, type ExactCommandId } from './commandCatalog';
+import { AVAILABLE_COMMANDS, normalizeCommandInput, resolveExactCommand, sanitizeCommandInput, type ExactCommandId } from './commandCatalog';
+import {
+  buildAboutOverviewOutput,
+  buildBacklogResponse,
+  buildBioOutput,
+  buildContactOverviewOutput,
+  buildExperienceOutput,
+  buildFrameworksOutput,
+  createAboutCommandHandlers,
+  createContactCommandHandlers,
+  createEasterEggCommandHandlers,
+  createGameCommandHandlers,
+  createNavigationCommandHandlers,
+  createPreferenceCommandHandlers,
+  createProjectsCommandHandlers,
+  createSystemCommandHandlers,
+  createThemeCommandHandlers,
+  buildHelpOutput,
+  buildHomeOutput,
+  buildNeofetchOutput,
+  buildProjectDetailsOutput,
+  buildProjectListOutput,
+  buildProjectsAliasOutput,
+  buildProjectsOverviewOutput,
+  buildSkillsOutput,
+  buildStatsOutput,
+  buildThemesOutput,
+  handleBacklogFilterCommand,
+  handleCdCommand,
+  handleContactByPath,
+  handleContactShortcutCommand,
+  handleHackCommand,
+  handlePromptSetCommand,
+  handleProjectContextShortcutCommand,
+  handleResumeInstallCommand,
+  handleThemeCommand,
+} from './commands';
 import './Terminal.css';
 
 type Section = 'home' | 'about' | 'projects' | 'contact';
@@ -24,23 +60,6 @@ const Snake = dynamic(() => import('@/components/Snake/Snake'), {
   ssr: false,
   loading: () => null,
 });
-
-const buildHomeOutput = (activity: string): string => `  ____            _    __       _ _
- |  _ \\ ___  _ __| |_ / _| ___ | (_) ___
- | |_) / _ \\| '__| __| |_ / _ \\| | |/ _ \\
- |  __/ (_) | |  | |_|  _| (_) | | | (_) |
- |_|   \\___/|_|   \\__|_|  \\___/|_|_|\\___/
-
-PORTFOLIO v2.0
-
-DYLAN VAN DER VEN
-Full-Stack Developer & UI/UX Designer
-Status: ${activity}
-
-Navigate to:
-[1] about    - Learn about me
-[2] projects - View my work
-[3] contact  - Get in touch`;
 
 const generateSecureUUID = (): string => {
   const cryptoApi = globalThis.crypto;
@@ -546,114 +565,13 @@ export default function Terminal() {
   };
 
   const getHelpOutput = (): string => {
-    const globalCommands = [
-      'GLOBAL COMMANDS:',
-      '  help       - Show commands for this section',
-      '  clear      - Clear terminal output',
-      '  home       - Go to home section',
-      '  about      - Go to about section',
-      '  projects   - Go to projects section',
-      '  contact    - Go to contact section',
-      '  stats      - Show session statistics',
-      '  neofetch   - Show system profile panel',
-      '  backlog    - Show current learning backlog',
-      '  backlog next/focus/done - Filter learning backlog',
-      '  debug on/off - Toggle debug mode',
-      '  prompt set <text> - Set custom prompt',
-      '  prompt reset - Reset prompt to default',
-      '  git push   - Push current branch to remote',
-      '  npm install resume - Download resume',
-      '  npm i resume       - Download resume (shorthand)',
-      '  typing on/off - Toggle typing effect animation',
-      '  theme <name> - Change color theme',
-      '  themes     - List all available themes',
-      '  sound on/off - Toggle terminal sound effects',
-      '  crt on/off - Toggle CRT screen effect',
-      '  tree       - Display directory structure',
-      '  ls         - Alias for projects',
-      '  cd <section|path> - Navigate virtual sections/paths',
-      '  tetris     - Launch Tetris',
-      '  snake      - Launch Snake',
-      '',
-      'EASTER EGGS:',
-      "  matrix, hack, coffee, sudo, whoami, ping, fortune, joke, secret",
-    ];
-
-    const sectionCommands: string[] = [];
-
-    if (currentSection === 'home') {
-      sectionCommands.push(
-        'SECTION COMMANDS (HOME):',
-        '  [1] / about    - Open about section',
-        '  [2] / projects - Open projects section',
-        '  [3] / contact  - Open contact section',
-      );
-    }
-
-    if (currentSection === 'about') {
-      sectionCommands.push('SECTION COMMANDS (ABOUT):');
-
-      if (!currentSubsection) {
-        sectionCommands.push(
-          '  bio        - View biography',
-          '  skills     - View technical skills',
-          '  frameworks - View frameworks & libraries',
-          '  experience - View work experience',
-          '  [1-4]      - Use number shortcuts',
-        );
-      } else {
-        sectionCommands.push(
-          `  Current subsection: ${currentSubsection}`,
-          '  back       - Return to about menu',
-        );
-      }
-    }
-
-    if (currentSection === 'projects') {
-      sectionCommands.push('SECTION COMMANDS (PROJECTS):');
-
-      if (!currentSubsection) {
-        sectionCommands.push(
-          '  major      - View major projects',
-          '  minor      - View minor projects',
-          '  [1-2]      - Use number shortcuts',
-        );
-      } else if (currentSubsection === 'major' || currentSubsection === 'minor') {
-        const projectList = currentSubsection === 'major' ? majorProjects : minorProjects;
-        sectionCommands.push(
-          `  Current category: ${currentSubsection}`,
-          `  [1-${projectList.length}] - Open a project`,
-          '  back       - Return to project categories',
-        );
-      } else if (currentSubsection.includes('-project-')) {
-        const [category, , projectNumStr] = currentSubsection.split('-');
-        const projectList = category === 'major' ? majorProjects : minorProjects;
-        const project = projectList[parseInt(projectNumStr, 10) - 1];
-
-        sectionCommands.push('  back       - Return to the project list');
-
-        if (project?.link) {
-          sectionCommands.push('  github     - Open GitHub repository');
-        }
-
-        if (project?.webapp) {
-          sectionCommands.push('  webapp     - Open live application');
-        }
-      }
-    }
-
-    if (currentSection === 'contact') {
-      sectionCommands.push(
-        'SECTION COMMANDS (CONTACT):',
-        '  github     - Open GitHub profile',
-        '  linkedin   - Open LinkedIn profile',
-        '  email      - Open email client',
-        '  instagram  - Open Instagram profile',
-        `  [1-${contactData.length}]      - Copy contact info`,
-      );
-    }
-
-    return [...globalCommands, '', ...sectionCommands].join('\n');
+    return buildHelpOutput({
+      currentSection,
+      currentSubsection,
+      majorProjects,
+      minorProjects,
+      contactCount: contactData.length,
+    });
   };
 
   const createProjectSlug = (value: string): string => {
@@ -753,6 +671,21 @@ export default function Terminal() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       addOutput(line);
     }
+  };
+
+  const triggerResumeDownload = () => {
+    addOutput(`📦 Installing resume...
+⠋ Downloading CV-Dylan.pdf
+✓ Resume downloaded successfully!
+
+Check your downloads folder.`);
+
+    const link = document.createElement('a');
+    link.href = '/resume/CV-Dylan.pdf';
+    link.download = 'CV-Dylan.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const runGitPushPrank = () => {
@@ -873,110 +806,44 @@ export default function Terminal() {
   const showAboutOverview = () => {
     clearHistory();
     showAboutMenu();
-    addOutput(`ABOUT DYLAN VAN DER VEN
-
-[1] bio        - About me
-[2] skills     - Technical skills (with levels)
-[3] frameworks - Frameworks & libraries
-[4] experience - Work history & timeline
-
-Type a number or command to view`);
+    addOutput(buildAboutOverviewOutput());
   };
 
   const showBioContent = () => {
     setCurrentSubsection('bio');
     clearHistory();
-    addOutput(`BIOGRAPHY
-
-I'm a passionate fullstack developer and designer with a love for creating
-immersive digital experiences. I specialize in building modern web applications
-with cutting-edge technologies and creative visual effects.
-
-From pixel-perfect UI design to complex backend systems, I bridge the gap
-between design and development. I'm particularly interested in WebGL,
-shader programming, and creating unique interactive experiences.
-
-CURRENTLY:
-- Learning shader programming & advanced Three.js
-- Open to freelance projects & collaborations
-- Building experimental web experiences
-
-Type 'back' to return`);
+    addOutput(buildBioOutput());
   };
 
   const showSkillsContent = () => {
     setCurrentSubsection('skills');
     clearHistory();
-
-    const getProgressBar = (level: number) => {
-      const filled = '█'.repeat(level);
-      const empty = '░'.repeat(5 - level);
-      return filled + empty;
-    };
-
-    const skillsOutput = Object.entries(skillsData).map(([category, items]) => {
-      const skillsList = (items as Array<{name: string, level: number}>).map(skill => {
-        const bar = getProgressBar(skill.level);
-        return `  ${skill.name.padEnd(20)} [${bar}] ${skill.level}/5`;
-      }).join('\n');
-      return `[${category.toUpperCase()}]\n${skillsList}`;
-    }).join('\n\n');
-
-    addOutput(`TECHNICAL SKILLS\n\n${skillsOutput}\n\nLegend: █ = Proficient, ░ = Learning\nColors: Red (1-2), Yellow (3), Light Green (4), Dark Green (5)\n\nType 'back' to return`);
+    addOutput(buildSkillsOutput(skillsData));
   };
 
   const showFrameworksContent = () => {
     setCurrentSubsection('frameworks');
     clearHistory();
-    const frontendList = skillsData.frontend.map((skill) => skill.name).join(', ');
-    const backendList = skillsData.backend.map((skill) => skill.name).join(', ');
-    const toolsList = skillsData.tools.map((skill) => skill.name).join(', ');
-    addOutput(`FRAMEWORKS & LIBRARIES
-
-Frontend: ${frontendList}
-Backend: ${backendList}
-Tools: ${toolsList}
-
-Type 'back' to return`);
+    addOutput(buildFrameworksOutput(skillsData));
   };
 
   const showExperienceContent = () => {
     setCurrentSubsection('experience');
     clearHistory();
-    const experienceOutput = experienceData.map((experience) => {
-      const descriptions = experience.description.map((description) => `    • ${description}`).join('\n');
-      const techStack = `    Tech: ${experience.tech.join(', ')}`;
-      return `
-[█] ${experience.title}
-    ${experience.company} | ${experience.location}
-    ${experience.period}
-
-${descriptions}
-${techStack}`;
-    }).join('\n\n');
-
-    addOutput(`WORK EXPERIENCE${experienceOutput}\n\nType 'back' to return`);
+    addOutput(buildExperienceOutput(experienceData));
   };
 
   const showProjectsOverview = () => {
     clearHistory();
     showProjectsMenu();
-    addOutput(`PROJECTS
-
-[1] major   - Major projects (${majorProjects.length})
-[2] minor   - Minor projects (${minorProjects.length})
-
-Type a number or 'major'/'minor' to view category`);
+    addOutput(buildProjectsOverviewOutput(majorProjects.length, minorProjects.length));
   };
 
   const showProjectsAliasListing = () => {
     clearHistory();
     setCurrentSection('projects');
     setCurrentSubsection(null);
-    const projectsList = projectsData.map((project, index) =>
-      `[${index + 1}] ${project.name} - ${project.description}`
-    ).join('\n');
-    addOutput(`PROJECTS\n\n${projectsList}\n\nType a number (1-${projectsData.length}) to view details`);
+    addOutput(buildProjectsAliasOutput(projectsData));
   };
 
   const showMajorProjectsList = () => {
@@ -987,8 +854,7 @@ Type a number or 'major'/'minor' to view category`);
 
     setCurrentSubsection('major');
     clearHistory();
-    const majorList = majorProjects.map((project, index) => `[${index + 1}] ${project.name}`).join('\n');
-    addOutput(`MAJOR PROJECTS\n\n${majorList}\n\nType a number (1-${majorProjects.length}) to view details`);
+    addOutput(buildProjectListOutput('MAJOR PROJECTS', majorProjects));
   };
 
   const showMinorProjectsList = () => {
@@ -999,34 +865,13 @@ Type a number or 'major'/'minor' to view category`);
 
     setCurrentSubsection('minor');
     clearHistory();
-    const minorList = minorProjects.map((project, index) => `[${index + 1}] ${project.name}`).join('\n');
-    addOutput(`MINOR PROJECTS\n\n${minorList}\n\nType a number (1-${minorProjects.length}) to view details`);
+    addOutput(buildProjectListOutput('MINOR PROJECTS', minorProjects));
   };
 
   const showContactOverview = () => {
     clearHistory();
     showContactMenu();
-    const contactOutput = contactData.map((contact, index) => {
-      let line = `[${index + 1}] ${contact.label.padEnd(10)} ${contact.value}`;
-      if (contact.label === 'EMAIL') {
-        line += '  ⚠ Slow response';
-      }
-      return line;
-    }).join('\n');
-
-    addOutput(`CONTACT DYLAN VAN DER VEN
-
-Status: ${discordActivity}
-Location: Netherlands 🇳🇱
-Timezone: CET (UTC+1)
-
-${contactOutput}
-
-Type a number (1-${contactData.length}) to copy, or use quick commands:
-  github     - Open GitHub profile
-  linkedin   - Open LinkedIn profile
-  email      - Open email client
-  instagram  - Open Instagram profile`);
+    addOutput(buildContactOverviewOutput(contactData, discordActivity));
   };
 
   const applyThemePreference = (themeName: string) => {
@@ -1078,26 +923,7 @@ Type a number (1-${contactData.length}) to copy, or use quick commands:
   };
 
   const showThemesOutput = () => {
-    addOutput(`AVAILABLE THEMES:
-
-[1]  default         - Modern blue terminal
-[2]  green           - Classic green terminal
-[3]  amber           - Warm amber terminal
-[4]  dracula         - Dracula color scheme
-[5]  monokai         - Monokai color scheme
-[6]  nord            - Nord color scheme
-[7]  high-contrast   - WCAG AAA accessibility
-[8]  solarized-dark  - Solarized Dark
-[9]  solarized-light - Solarized Light
-[10] gruvbox         - Gruvbox retro theme
-[11] tokyo-night     - Tokyo Night theme
-[12] one-dark        - One Dark theme
-[13] synthwave       - Synthwave 80s neon
-[14] matrix          - Matrix green code
-[15] cyberpunk       - Cyberpunk 2077 style
-
-Use: theme <name>
-Example: theme tokyo-night`);
+    addOutput(buildThemesOutput());
   };
 
   const toggleTreePanel = () => {
@@ -1122,76 +948,22 @@ Example: theme tokyo-night`);
   };
 
   const showStatsOutput = () => {
-    const sessionTime = Math.floor((Date.now() - sessionStart) / 1000);
-    const minutes = Math.floor(sessionTime / 60);
-    const seconds = sessionTime % 60;
-    const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-
-    const mostUsedCmd = Array.from(commandFrequency.entries())
-      .sort((a, b) => b[1] - a[1])[0];
-
-    const sectionsStr = Array.from(sectionsVisited).join(', ');
-
-    addOutput(`SESSION STATISTICS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Session Time:      ${timeStr}
-Commands Run:       ${commandCount}
-Sections Visited:  ${sectionsVisited.size} (${sectionsStr})
-Most Used Command: ${mostUsedCmd ? `${mostUsedCmd[0]} (${mostUsedCmd[1]}x)` : 'N/A'}
-Commands in History: ${commandHistory.length}
-
-Keep exploring!`);
+    addOutput(buildStatsOutput({
+      sessionStart,
+      commandFrequency,
+      sectionsVisited,
+      commandCount,
+      commandHistoryLength: commandHistory.length,
+    }));
   };
 
   const showNeofetchOutput = () => {
-    const sessionMinutes = Math.max(1, Math.floor((Date.now() - sessionStart) / 60000));
-    addOutput(` _   _  ____ _____
-| \\ | |/ ___|_   _|  OS: NST.v2 (NiSuTe Kernel)
-|  \\| |\\___ \\ | |    Host: Dylan's Portfolio
-| |\\  | ___) || |    Uptime: ${sessionMinutes} mins
-|_| \\_|____/ |_|     Shell: dsh (dylan-sh)
-                     Theme: ${currentTheme}
-                     Discord: ${discordActivity}`);
+    addOutput(buildNeofetchOutput({ sessionStart, currentTheme, discordActivity }));
   };
 
   const showBacklogOutput = (subcommand: string = 'all') => {
-    const statusIcon: Record<'learning' | 'building' | 'researching' | 'done', string> = {
-      learning: '📚',
-      building: '🛠',
-      researching: '🔍',
-      done: '✅',
-    };
-
-    const formatBacklogItem = (item: typeof learningBacklog[number]) => {
-      return `[${item.id}] ${statusIcon[item.status]} ${item.topic}\n    Status: ${item.status.toUpperCase()} | Priority: ${item.priority.toUpperCase()} | ETA: ${item.eta}\n    Focus: ${item.focus}`;
-    };
-
-    let filteredItems = learningBacklog;
-    let title = 'LEARNING BACKLOG';
-
-    if (subcommand === 'next') {
-      const nextItem = learningBacklog.find((item) => item.status !== 'done');
-      filteredItems = nextItem ? [nextItem] : [];
-      title = 'BACKLOG - NEXT UP';
-    } else if (subcommand === 'focus') {
-      filteredItems = learningBacklog.filter((item) => item.priority === 'high' && item.status !== 'done');
-      title = 'BACKLOG - CURRENT FOCUS';
-    } else if (subcommand === 'done') {
-      filteredItems = learningBacklog.filter((item) => item.status === 'done');
-      title = 'BACKLOG - COMPLETED';
-    } else if (subcommand !== 'all') {
-      addOutput(`Invalid backlog option: ${subcommand}\nUse: backlog | backlog next | backlog focus | backlog done`, 'error');
-      return;
-    }
-
-    if (filteredItems.length === 0) {
-      addOutput(`${title}\n\nNo items found for this filter.`, 'error');
-      return;
-    }
-
-    const output = filteredItems.map(formatBacklogItem).join('\n\n');
-    addOutput(`${title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n${output}`);
+    const response = buildBacklogResponse(learningBacklog, subcommand);
+    addOutput(response.content, response.type);
   };
 
   const setDebugPreference = (enabled: boolean) => {
@@ -1278,772 +1050,161 @@ Type 'debug off' to disable`;
       return;
     }
 
-    const exactCommandHandlers: Record<ExactCommandId, () => void> = {
-      help: () => addOutput(getHelpOutput()),
-      clear: clearHistory,
-      home: () => {
-        setSectionsVisited(prev => new Set(prev).add('home'));
-        void showLoading(() => {
-          clearHistory();
-          showHomeContent();
-          addOutput(buildHomeOutput(discordActivity));
-        });
-      },
-      about: () => {
-        setSectionsVisited(prev => new Set(prev).add('about'));
-        void showLoading(showAboutOverview);
-      },
-      bio: () => {
-        if (currentSection === 'about') {
-          showBioContent();
-          return;
-        }
-        addOutput('undefined', 'error');
-      },
-      skills: () => {
-        if (currentSection === 'about') {
-          showSkillsContent();
-          return;
-        }
-        addOutput('undefined', 'error');
-      },
-      frameworks: () => {
-        if (currentSection === 'about') {
-          showFrameworksContent();
-          return;
-        }
-        addOutput('undefined', 'error');
-      },
-      experience: () => {
-        if (currentSection === 'about') {
-          showExperienceContent();
-          return;
-        }
-        addOutput('undefined', 'error');
-      },
-      projects: () => {
-        setSectionsVisited(prev => new Set(prev).add('projects'));
-        void showLoading(showProjectsOverview);
-      },
-      major: showMajorProjectsList,
-      minor: showMinorProjectsList,
-      back: () => {
-        if (!currentSubsection) {
-          addOutput('Already at main section. Type a section name to navigate.', 'error');
-          return;
-        }
-
-        setCurrentSubsection(null);
-        if (currentSection === 'about') {
-          showAboutOverview();
-          return;
-        }
-
-        if (currentSection === 'projects') {
-          showProjectsOverview();
-        }
-      },
-      contact: () => {
-        setSectionsVisited(prev => new Set(prev).add('contact'));
-        void showLoading(showContactOverview);
-      },
-      ls: showProjectsAliasListing,
-      'typing-on': () => setTypingPreference(true),
-      'typing-off': () => setTypingPreference(false),
-      'sound-on': () => setSoundPreference(true),
-      'sound-off': () => setSoundPreference(false),
-      'crt-on': () => setCrtPreference(true),
-      'crt-off': () => setCrtPreference(false),
-      themes: showThemesOutput,
-      tree: toggleTreePanel,
-      'git-push': runGitPushPrank,
-      matrix: () => {
-        void addOutputWithDelay([
-          'Wake up, Neo...',
-          'The Matrix has you.',
-          'Follow the white rabbit.',
-          '',
-          'Knock, knock, Neo.'
-        ]);
-      },
-      coffee: () => {
-        void addOutputWithDelay([
-          'Setting perfect temperature...',
-          'Adding milk...',
-          'Brewing coffee...',
-          '',
-          `       (  )   (   )  )
-        ) (   )  (  (
-        ( )  (    ) )
-        _____________
-       <_____________> ___
-       |             |/ _ \\
-       |               | | |
-       |               |_| |
-    ___|             |\\___/
-   /    \\___________/    \\
-   \\_____________________/`
-        ]);
-      },
-      joke: () => {
-        const jokes = [
-          ['Why do programmers prefer dark mode?', '', 'Because light attracts bugs!'],
-          ['Why do Java developers wear glasses?', '', 'Because they don\'t C#!'],
-          ['How many programmers does it take to change a light bulb?', '', 'None. It\'s a hardware problem!'],
-          ['Why did the programmer quit his job?', '', 'Because he didn\'t get arrays!']
-        ];
-        const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-        void addOutputWithDelay(randomJoke);
-      },
-      secret: () => {
-        const secrets = [
-          ['You found the secret command!', 'There is no secret... or is there?', 'Try exploring more commands!'],
-          ['Secret discovered!', 'The real secret is the code we wrote along the way.'],
-          ['Easter egg unlocked!', 'Congratulations! You\'re now officially a command explorer.'],
-          ['Hidden gem found!', 'You have excellent curiosity. That\'s what makes great developers!']
-        ];
-        const randomSecret = secrets[Math.floor(Math.random() * secrets.length)];
-        void addOutputWithDelay(randomSecret);
-      },
-      sudo: () => {
-        addOutput('[sudo] password for dylan:');
-        setSudoMode(true);
-      },
-      whoami: () => {
-        void addOutputWithDelay([
-          'You are: A curious developer',
-          'Location: Viewing Dylan\'s portfolio',
-          'Mission: Exploring terminal commands',
-          'Status: Awesome!'
-        ]);
-      },
-      ping: () => {
-        void addOutputWithDelay([
-          'PING portfolio.dylan.dev',
-          '64 bytes from awesome: icmp_seq=1 ttl=64 time=0.1 ms',
-          '64 bytes from impressive: icmp_seq=2 ttl=64 time=0.1 ms',
-          '64 bytes from hire_me: icmp_seq=3 ttl=64 time=0.1 ms'
-        ]);
-      },
-      fortune: () => {
-        void addOutputWithDelay([
-          'Your fortune: You will discover an amazing developer today.',
-          'Hint: You\'re already looking at his portfolio!'
-        ]);
-      },
-      tetris: launchTetris,
-      snake: launchSnake,
-      stats: showStatsOutput,
-      neofetch: showNeofetchOutput,
-      backlog: () => showBacklogOutput(),
-      'debug-on': () => setDebugPreference(true),
-      'debug-off': () => setDebugPreference(false),
-      'prompt-reset': () => {
-        setCustomPrompt('$');
-        addOutput('✓ Prompt reset to default: $');
-      },
-    };
+    const exactCommandHandlers = {
+      ...createNavigationCommandHandlers({
+        addOutput,
+        clearHistory,
+        showLoading,
+        showHomeContent,
+        buildHomeOutput,
+        discordActivity,
+        setSectionsVisited,
+        currentSubsection,
+        currentSection,
+        setCurrentSubsection,
+        showAboutOverview,
+        showProjectsOverview,
+        showProjectsAliasListing,
+      }),
+      ...createAboutCommandHandlers({
+        addOutput,
+        showLoading,
+        setSectionsVisited,
+        currentSection,
+        showAboutOverview,
+        showBioContent,
+        showSkillsContent,
+        showFrameworksContent,
+        showExperienceContent,
+      }),
+      ...createProjectsCommandHandlers({
+        setSectionsVisited,
+        showLoading,
+        showProjectsOverview,
+        showMajorProjectsList,
+        showMinorProjectsList,
+      }),
+      ...createContactCommandHandlers({
+        setSectionsVisited,
+        showLoading,
+        showContactOverview,
+      }),
+      ...createPreferenceCommandHandlers({
+        setTypingPreference,
+        setSoundPreference,
+        setCrtPreference,
+      }),
+      ...createThemeCommandHandlers({ showThemesOutput }),
+      ...createSystemCommandHandlers({
+        addOutput,
+        getHelpOutput,
+        clearHistory,
+        toggleTreePanel,
+        runGitPushPrank,
+        showStatsOutput,
+        showNeofetchOutput,
+        showBacklogOutput,
+        setDebugPreference,
+        setCustomPrompt,
+      }),
+      ...createGameCommandHandlers({
+        launchTetris,
+        launchSnake,
+      }),
+      ...createEasterEggCommandHandlers({
+        addOutput,
+        addOutputWithDelay,
+        setSudoMode,
+      }),
+    } satisfies Partial<Record<ExactCommandId, () => void>>;
 
     const exactCommand = resolveExactCommand(trimmedCmd);
     if (exactCommand) {
-      exactCommandHandlers[exactCommand]();
+      const exactHandler = exactCommandHandlers[exactCommand];
+      if (exactHandler) {
+        exactHandler();
+        return;
+      }
+    }
+
+    if (handleThemeCommand({ trimmedCmd, addOutput, applyThemePreference })) {
       return;
     }
 
-    // Handle 'theme' command
-        if (trimmedCmd.startsWith('theme ')) {
-          const themeName = trimmedCmd.substring(6).trim();
-          
-          if (VALID_THEMES.includes(themeName as typeof VALID_THEMES[number])) {
-            applyThemePreference(themeName);
-            
-            addOutput(`✓ Theme changed to: ${themeName}`);
-            return;
-          } else {
-            addOutput(`ERROR: Invalid theme '${themeName}'\nAvailable themes: ${VALID_THEMES.join(', ')}`, 'error');
-            return;
-          }
-        }
+    if (handleCdCommand({
+      trimmedCmd,
+      currentVirtualPathParts,
+      createProjectSlug,
+      majorProjects,
+      minorProjects,
+      openProjectDetails,
+      executeCommand,
+      addOutput,
+      openContactByPath: (contactPath: string) => handleContactByPath({
+        contactPath,
+        contactData,
+        addOutput,
+        handleCopy,
+      }),
+      triggerResumeDownload,
+    })) {
+      return;
+    }
 
-        // Handle 'cd' command
-        if (trimmedCmd.startsWith('cd ')) {
-          const target = trimmedCmd.substring(3).trim();
 
-          const openProjectBySlug = (slug: string, category?: 'major' | 'minor') => {
-            if (category) {
-              const projectList = category === 'major' ? majorProjects : minorProjects;
-              const scopedIndex = projectList.findIndex((project) => createProjectSlug(project.name) === slug);
-              if (scopedIndex !== -1) {
-                openProjectDetails(category, scopedIndex);
-                return true;
-              }
-              return false;
-            }
 
-            const majorIndex = majorProjects.findIndex((project) => createProjectSlug(project.name) === slug);
-            if (majorIndex !== -1) {
-              openProjectDetails('major', majorIndex);
-              return true;
-            }
-
-            const minorIndex = minorProjects.findIndex((project) => createProjectSlug(project.name) === slug);
-            if (minorIndex !== -1) {
-              openProjectDetails('minor', minorIndex);
-              return true;
-            }
-
-            return false;
-          };
-
-          const triggerResumeDownload = () => {
-            addOutput(`📦 Installing resume...
-⠋ Downloading Dylan_van_der_Ven_Resume.pdf
-✓ Resume downloaded successfully!
-
-Check your downloads folder.`);
-
-            const link = document.createElement('a');
-            link.href = '/resume/Dylan_van_der_Ven_Resume.pdf';
-            link.download = 'Dylan_van_der_Ven_Resume.pdf';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          };
-
-          const openContactByPath = (contactPath: string): boolean => {
-            const key = contactPath.replace(/\.link$/i, '');
-            const contact = contactData.find((item) => item.label.toLowerCase() === key);
-            if (!contact) {
-              return false;
-            }
-
-            if (contact.link && contact.link !== '#') {
-              addOutput(`Opening ${key}...`);
-              window.open(contact.link, '_blank');
-            } else {
-              handleCopy(contact.value, contact.label);
-            }
-            return true;
-          };
-
-          const normalizedTarget = target
-            .replace(/\/+/g, '/')
-            .replace(/\/$/, '');
-
-          const resolvePathParts = (pathValue: string): string[] => {
-            const isAbsolutePath = pathValue.startsWith('/') || /^(home|public)(\/|$)/.test(pathValue);
-            const baseParts = isAbsolutePath ? [] : currentVirtualPathParts;
-            const incomingParts = pathValue.replace(/^\/+/, '').split('/').filter(Boolean);
-            const stack = [...baseParts];
-
-            for (const part of incomingParts) {
-              if (part === '.') {
-                continue;
-              }
-
-              if (part === '..') {
-                if (stack.length > 0) {
-                  stack.pop();
-                }
-                continue;
-              }
-
-              stack.push(part);
-            }
-
-            return stack;
-          };
-
-          const navigateToResolvedPath = (resolvedParts: string[]): boolean => {
-            if (resolvedParts.length === 0) {
-              executeCommand('home');
-              return true;
-            }
-
-            if (resolvedParts[0] === 'public') {
-              if (resolvedParts.length === 1 || (resolvedParts.length === 2 && resolvedParts[1] === 'portfolio.html')) {
-                addOutput('Opening portfolio home page...');
-                window.open('/', '_blank');
-                return true;
-              }
-              return false;
-            }
-
-            if (resolvedParts[0] !== 'home') {
-              return false;
-            }
-
-            if (resolvedParts.length === 1) {
-              executeCommand('home');
-              return true;
-            }
-
-            const localParts = resolvedParts[1] === 'dylan'
-              ? resolvedParts.slice(2)
-              : resolvedParts.slice(1);
-
-            if (localParts.length === 0) {
-              executeCommand('home');
-              return true;
-            }
-
-            const [section, second, third] = localParts;
-
-            if (section === 'about') {
-              if (!second) {
-                executeCommand('about');
-                return true;
-              }
-
-              const aboutMapping: Record<string, 'bio' | 'skills' | 'frameworks' | 'experience'> = {
-                bio: 'bio',
-                'bio.txt': 'bio',
-                skills: 'skills',
-                'skills.json': 'skills',
-                frameworks: 'frameworks',
-                'frameworks.md': 'frameworks',
-                experience: 'experience',
-              };
-
-              const command = aboutMapping[second];
-              if (!command) {
-                return false;
-              }
-
-              executeCommand('about');
-              setTimeout(() => executeCommand(command), 0);
-              return true;
-            }
-
-            if (section === 'projects') {
-              if (!second) {
-                executeCommand('projects');
-                return true;
-              }
-
-              if (second === 'major' || second === 'minor') {
-                if (!third) {
-                  executeCommand('projects');
-                  setTimeout(() => executeCommand(second), 0);
-                  return true;
-                }
-
-                if (openProjectBySlug(third, second)) {
-                  return true;
-                }
-                return false;
-              }
-
-              if (openProjectBySlug(second)) {
-                return true;
-              }
-
-              return false;
-            }
-
-            if (section === 'contact') {
-              if (!second) {
-                executeCommand('contact');
-                return true;
-              }
-              return openContactByPath(second);
-            }
-
-            if (section === 'resume') {
-              if (!second || second === 'dylan_van_der_ven_resume.pdf') {
-                triggerResumeDownload();
-                return true;
-              }
-              return false;
-            }
-
-            return false;
-          };
-
-          if (normalizedTarget === '' || normalizedTarget === '/') {
-            executeCommand('home');
-            return;
-          }
-
-          const resolvedParts = resolvePathParts(target);
-          if (navigateToResolvedPath(resolvedParts)) {
-            return;
-          }
-
-          const fallbackSections = ['home', 'about', 'projects', 'contact'];
-          if (fallbackSections.includes(normalizedTarget)) {
-            executeCommand(normalizedTarget);
-            return;
-          }
-
-          addOutput(`cd: ${target}: No such file or directory`, 'error');
+        if (handleContactShortcutCommand({
+          trimmedCmd,
+          currentSection,
+          contactData,
+          addOutput,
+        })) {
           return;
         }
 
-        // Check for social link commands (only in contact section)
-        if (currentSection === 'contact') {
-          const contact = contactData.find(c => c.label.toLowerCase() === trimmedCmd);
-          
-          if (contact && contact.link && contact.link !== '#') {
-            addOutput(`Opening ${trimmedCmd}...`);
-            window.open(contact.link, '_blank');
-            return;
-          }
-        }
-
-        // Check for npm install/i resume command
-        if (trimmedCmd === 'npm install resume' || trimmedCmd === 'npm i resume') {
-          addOutput(`📦 Installing resume...
-⠋ Downloading Dylan_van_der_Ven_Resume.pdf
-✓ Resume downloaded successfully!
-
-Check your downloads folder.`);
-          
-          // Trigger download
-          const link = document.createElement('a');
-          link.href = '/resume/CV-Dylan.pdf';
-          link.download = 'CV-Dylan.pdf';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+        if (handleResumeInstallCommand({
+          trimmedCmd,
+          triggerResumeDownload,
+        })) {
           return;
         }
 
-        // Easter eggs with delays and variants
-        if (trimmedCmd === 'matrix') {
-          addOutputWithDelay([
-            'Wake up, Neo...',
-            'The Matrix has you.',
-            'Follow the white rabbit.',
-            '',
-            'Knock, knock, Neo.'
-          ]);
+        if (handleHackCommand({
+          trimmedCmd,
+          addOutput,
+          addOutputWithDelay,
+          setHistory,
+        })) {
           return;
         }
 
-        if (trimmedCmd === 'hack') {
-          addOutput('[INITIALIZING HACKING SEQUENCE...]');
-          
-          // Animated progress bar that replaces itself with random increments
-          let progress = 0;
-          
-          const updateProgress = () => {
-            if (progress >= 100) {
-              progress = 100; // Cap at 100
-              const filled = 20;
-              const bar = '█'.repeat(filled);
-              
-              setHistory(prev => {
-                const newHistory = [...prev];
-                if (newHistory.length > 0 && newHistory[newHistory.length - 1].content.includes('%')) {
-                  newHistory[newHistory.length - 1] = { type: 'output', content: `[${bar}] ${progress.toFixed(1)}%` };
-                }
-                return newHistory;
-              });
-              
-              setTimeout(() => {
-                addOutputWithDelay([
-                  '',
-                  'ACCESS GRANTED',
-                  "You're in Dylan's gaming library",
-                  '',
-                  'Just kidding. Nice try though!'
-                ]);
-              }, 300);
-              return;
-            }
-            
-            // Random increment between 1.0 and 3.2
-            const increment = Math.random() * 2.2 + 1.0;
-            progress = Math.min(progress + increment, 100);
-            
-            const filled = Math.floor((progress / 100) * 20);
-            const empty = 20 - filled;
-            const bar = '█'.repeat(filled) + '░'.repeat(empty);
-            
-            // Replace the last line with updated progress
-            setHistory(prev => {
-              const newHistory = [...prev];
-              if (newHistory.length > 0 && newHistory[newHistory.length - 1].content.includes('%')) {
-                newHistory[newHistory.length - 1] = { type: 'output', content: `[${bar}] ${progress.toFixed(1)}%` };
-              } else {
-                newHistory.push({ type: 'output', content: `[${bar}] ${progress.toFixed(1)}%` });
-              }
-              return newHistory;
-            });
-            
-            // Random delay between 50 and 150ms
-            const delay = Math.random() * 100 + 50;
-            setTimeout(updateProgress, delay);
-          };
-          
-          updateProgress();
+        if (handleBacklogFilterCommand({
+          trimmedCmd,
+          showBacklogOutput,
+        })) {
           return;
         }
 
-        if (trimmedCmd === 'coffee') {
-          addOutputWithDelay([
-            'Setting perfect temperature...',
-            'Adding milk...',
-            'Brewing coffee...',
-            '',
-            `       (  )   (   )  )
-        ) (   )  (  (
-        ( )  (    ) )
-        _____________
-       <_____________> ___
-       |             |/ _ \\
-       |               | | |
-       |               |_| |
-    ___|             |\\___/
-   /    \\___________/    \\
-   \\_____________________/`
-          ]);
+        if (handlePromptSetCommand({
+          trimmedCmd,
+          sanitizedCmd,
+          setCustomPrompt,
+          addOutput,
+        })) {
           return;
         }
 
-        if (trimmedCmd === 'joke') {
-          const jokes = [
-            ['Why do programmers prefer dark mode?', '', 'Because light attracts bugs!'],
-            ['Why do Java developers wear glasses?', '', 'Because they don\'t C#!'],
-            ['How many programmers does it take to change a light bulb?', '', 'None. It\'s a hardware problem!'],
-            ['Why did the programmer quit his job?', '', 'Because he didn\'t get arrays!']
-          ];
-          const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-          addOutputWithDelay(randomJoke);
+        if (handleProjectContextShortcutCommand({
+          trimmedCmd,
+          currentSubsection,
+          majorProjects,
+          minorProjects,
+          addOutput,
+        })) {
           return;
         }
 
-        if (trimmedCmd === 'secret') {
-          const secrets = [
-            ['You found the secret command!', 'There is no secret... or is there?', 'Try exploring more commands!'],
-            ['Secret discovered!', 'The real secret is the code we wrote along the way.'],
-            ['Easter egg unlocked!', 'Congratulations! You\'re now officially a command explorer.'],
-            ['Hidden gem found!', 'You have excellent curiosity. That\'s what makes great developers!']
-          ];
-          const randomSecret = secrets[Math.floor(Math.random() * secrets.length)];
-          addOutputWithDelay(randomSecret);
-          return;
-        }
-
-        // Sudo command with password prompt
-        if (trimmedCmd === 'sudo') {
-          addOutput('[sudo] password for dylan:');
-          setSudoMode(true);
-          return;
-        }
-
-        // Simple easter eggs (line-by-line)
-        if (trimmedCmd === 'whoami') {
-          addOutputWithDelay([
-            'You are: A curious developer',
-            'Location: Viewing Dylan\'s portfolio',
-            'Mission: Exploring terminal commands',
-            'Status: Awesome!'
-          ]);
-          return;
-        }
-
-        if (trimmedCmd === 'ping') {
-          addOutputWithDelay([
-            'PING portfolio.dylan.dev',
-            '64 bytes from awesome: icmp_seq=1 ttl=64 time=0.1 ms',
-            '64 bytes from impressive: icmp_seq=2 ttl=64 time=0.1 ms',
-            '64 bytes from hire_me: icmp_seq=3 ttl=64 time=0.1 ms'
-          ]);
-          return;
-        }
-
-        if (trimmedCmd === 'fortune') {
-          addOutputWithDelay([
-            'Your fortune: You will discover an amazing developer today.',
-            'Hint: You\'re already looking at his portfolio!'
-          ]);
-          return;
-        }
-
-        if (trimmedCmd === 'play tetris' || trimmedCmd === 'tetris') {
-          addOutput('Launching Tetris...');
-          setTimeout(() => setShowTetris(true), 500);
-          return;
-        }
-
-        if (trimmedCmd === 'play snake' || trimmedCmd === 'snake') {
-          addOutput('Launching Snake...');
-          setTimeout(() => setShowSnake(true), 500);
-          return;
-        }
-
-        // Stats command
-        if (trimmedCmd === 'stats') {
-          const sessionTime = Math.floor((Date.now() - sessionStart) / 1000);
-          const minutes = Math.floor(sessionTime / 60);
-          const seconds = sessionTime % 60;
-          const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-          
-          const mostUsedCmd = Array.from(commandFrequency.entries())
-            .sort((a, b) => b[1] - a[1])[0];
-          
-          const sectionsStr = Array.from(sectionsVisited).join(', ');
-          
-          addOutput(`SESSION STATISTICS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Session Time:      ${timeStr}
-Commands Run:       ${commandCount}
-Sections Visited:  ${sectionsVisited.size} (${sectionsStr})
-Most Used Command: ${mostUsedCmd ? `${mostUsedCmd[0]} (${mostUsedCmd[1]}x)` : 'N/A'}
-Commands in History: ${commandHistory.length}
-
-Keep exploring!`);
-          return;
-        }
-
-        if (trimmedCmd === 'neofetch') {
-          const sessionMinutes = Math.max(1, Math.floor((Date.now() - sessionStart) / 60000));
-          addOutput(` _   _  ____ _____
-| \\ | |/ ___|_   _|  OS: NST.v2 (NiSuTe Kernel)
-|  \\| |\\___ \\ | |    Host: Dylan's Portfolio
-| |\\  | ___) || |    Uptime: ${sessionMinutes} mins
-|_| \\_|____/ |_|     Shell: dsh (dylan-sh)
-                     Theme: ${currentTheme}
-                     Discord: ${discordActivity}`);
-          return;
-        }
-
-        if (trimmedCmd === 'backlog' || trimmedCmd.startsWith('backlog ')) {
-          const subcommand = trimmedCmd.split(' ')[1] ?? 'all';
-          const statusIcon: Record<'learning' | 'building' | 'researching' | 'done', string> = {
-            learning: '📚',
-            building: '🛠',
-            researching: '🔍',
-            done: '✅',
-          };
-
-          const formatBacklogItem = (item: typeof learningBacklog[number]) => {
-            return `[${item.id}] ${statusIcon[item.status]} ${item.topic}\n    Status: ${item.status.toUpperCase()} | Priority: ${item.priority.toUpperCase()} | ETA: ${item.eta}\n    Focus: ${item.focus}`;
-          };
-
-          let filteredItems = learningBacklog;
-          let title = 'LEARNING BACKLOG';
-
-          if (subcommand === 'next') {
-            const nextItem = learningBacklog.find((item) => item.status !== 'done');
-            filteredItems = nextItem ? [nextItem] : [];
-            title = 'BACKLOG - NEXT UP';
-          } else if (subcommand === 'focus') {
-            filteredItems = learningBacklog.filter((item) => item.priority === 'high' && item.status !== 'done');
-            title = 'BACKLOG - CURRENT FOCUS';
-          } else if (subcommand === 'done') {
-            filteredItems = learningBacklog.filter((item) => item.status === 'done');
-            title = 'BACKLOG - COMPLETED';
-          } else if (subcommand !== 'all') {
-            addOutput(`Invalid backlog option: ${subcommand}\nUse: backlog | backlog next | backlog focus | backlog done`, 'error');
-            return;
-          }
-
-          if (filteredItems.length === 0) {
-            addOutput(`${title}\n\nNo items found for this filter.`, 'error');
-            return;
-          }
-
-          const output = filteredItems.map(formatBacklogItem).join('\n\n');
-          addOutput(`${title}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n${output}`);
-          return;
-        }
-
-        // Debug mode
-        if (trimmedCmd === 'debug on') {
-          if (debugMode) {
-            addOutput('⚠ Debug mode is already enabled', 'error');
-            return;
-          }
-          setDebugMode(true);
-          const performanceMemory = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
-          const debugInfo = `DEBUG MODE ENABLED 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-[REACT STATE]
-Current Section: ${currentSection}
-Current Subsection: ${currentSubsection}
-History Lines: ${history.length}
-Typing Effect: ${typingEffect ? 'ON' : 'OFF'}
-Sound: ${soundEnabled ? 'ON' : 'OFF'}
-CRT Effect: ${crtEffect ? 'ON' : 'OFF'}
-Theme: ${currentTheme}
-
-[LOCALSTORAGE]
-Command History: ${commandHistory.length} commands
-Stored Theme: ${localStorage.getItem('terminal-theme')}
-Stored Sound: ${localStorage.getItem('terminal-sound')}
-Stored Typing: ${localStorage.getItem('terminal-typing-effect')}
-Stored CRT: ${localStorage.getItem('terminal-crt')}
-
-[BROWSER]
-User Agent: ${navigator.userAgent}
-Viewport: ${window.innerWidth}x${window.innerHeight}
-Language: ${navigator.language}
-
-[PERFORMANCE]
-Memory: ${performanceMemory ? (performanceMemory.usedJSHeapSize / 1048576).toFixed(2) + ' MB' : 'N/A'}
-Uptime: ${Math.floor((Date.now() - sessionStart) / 1000)}s
-
-Type 'debug off' to disable`;
-          addOutput(debugInfo);
-          return;
-        }
-
-        if (trimmedCmd === 'debug off') {
-          if (!debugMode) {
-            addOutput('⚠ Debug mode is already disabled', 'error');
-            return;
-          }
-          setDebugMode(false);
-          addOutput('✓ Debug mode disabled');
-          return;
-        }
-
-        // Custom prompt
-        if (trimmedCmd.startsWith('prompt set ')) {
-          const newPrompt = sanitizedCmd.substring('prompt set '.length).trim();
-          if (newPrompt && newPrompt.length > 0) {
-            setCustomPrompt(newPrompt);
-            addOutput(`✓ Prompt changed to: ${newPrompt}`);
-          } else {
-            addOutput('ERROR: Prompt cannot be empty', 'error');
-          }
-          return;
-        }
-
-        // Check for GitHub command in project subsection
-        if (currentSubsection?.includes('-project-') && trimmedCmd === 'github') {
-          const [category, , projectNum] = currentSubsection.split('-');
-          const projects = category === 'major' ? majorProjects : minorProjects;
-          const projectIndex = parseInt(projectNum) - 1;
-          const project = projects[projectIndex];
-          if (project.link) {
-            addOutput(`Opening GitHub: ${project.link}`);
-            window.open(project.link, '_blank');
-          } else {
-            addOutput('No GitHub repository available for this project', 'error');
-          }
-          return;
-        }
-
-        // Check for webapp command in project subsection
-        if (currentSubsection?.includes('-project-') && trimmedCmd === 'webapp') {
-          const [category, , projectNum] = currentSubsection.split('-');
-          const projects = category === 'major' ? majorProjects : minorProjects;
-          const projectIndex = parseInt(projectNum) - 1;
-          const project = projects[projectIndex];
-          if (project.webapp) {
-            addOutput(`Opening live webapp: ${project.webapp}`);
-            window.open(project.webapp, '_blank');
-          } else {
-            addOutput('No live webapp available for this project', 'error');
-          }
-          return;
-        }
+        
 
         // Try to find similar command
         const suggestion = findSimilarCommand(trimmedCmd);
@@ -2067,20 +1228,7 @@ Type 'debug off' to disable`;
     setCurrentSubsection(`${category}-project-${projectIndex + 1}`);
     clearHistory();
 
-    const commands = [
-      project.link ? '[1] github - Open GitHub repository' : '',
-      project.webapp ? '[2] webapp - Open live application' : ''
-    ].filter(Boolean).join('\n');
-
-    const commandsSection = commands ? `\n\nCommands:\n${commands}` : '';
-
-    addOutput(`PROJECT: ${project.name}
-
-Description: ${project.description}
-Technologies: ${project.tech.join(', ')}
-Status: ● ${project.status}${project.link ? `\nGitHub: ${project.link}` : ''}${project.webapp ? `\nLive: ${project.webapp}` : ''}${commandsSection}
-
-Type 'back' to return`);
+    addOutput(buildProjectDetailsOutput(project));
   };
 
   const handleNumberInput = (num: number) => {

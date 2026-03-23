@@ -168,7 +168,7 @@
   gap: 1rem;
   border-left: 2px solid var(--terminal-accent);
   background: rgba(74, 158, 255, 0.03);
-  transition: all 0.2s;
+  transition: background-color 0.2s;
 }
 
 .contact-item:hover {
@@ -191,7 +191,7 @@
   color: var(--terminal-gray);
   text-decoration: none;
   border-bottom: 1px solid transparent;
-  transition: all 0.2s;
+  transition: color 0.2s, border-color 0.2s;
   flex: 1;
 }
 
@@ -208,7 +208,7 @@
   font-family: inherit;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s;
   font-weight: 600;
 }
 
@@ -400,7 +400,7 @@
   font-weight: 700;
   padding: 0.55rem 0.85rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .terminal-submit:disabled {
@@ -437,7 +437,7 @@
   color: var(--terminal-gray);
   text-decoration: none;
   border-bottom: 1px solid transparent;
-  transition: all 0.2s;
+  transition: color 0.2s, border-color 0.2s;
 }
 
 .contact-value-inline:hover {
@@ -453,7 +453,7 @@
   font-family: inherit;
   font-size: 11px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s;
   font-weight: 600;
 }
 
