@@ -180,7 +180,7 @@ This project is open source and available under the MIT License.
 ## Author
 
 **Dylan Van Der Ven**
-- Portfolio: [Your Portfolio URL]
+- Portfolio: [www.dylanvdven.xyz/] (https://dylanvdven.xyz/) 
 - GitHub: [@Dylan-Ven](https://github.com/Dylan-Ven)
 - LinkedIn: [Dylan Van Der Ven](https://www.linkedin.com/in/dylan-van-der-ven-766a94240/)
 
