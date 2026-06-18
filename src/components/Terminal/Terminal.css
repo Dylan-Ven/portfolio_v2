@@ -6,6 +6,29 @@
   overflow: hidden;
   position: relative;
   overscroll-behavior: none; /* Prevent pull-to-refresh */
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  background: var(--terminal-bg);
+}
+
+.terminal-layout::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 4px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.terminal-layout > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Particle effects */

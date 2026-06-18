@@ -11,18 +11,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 1,
     },
-    // Add your main sub-pages here
     {
-      url: `${SITE_URL}/projects`,
+      url: `${SITE_URL}/terminal`,
       lastModified: LAST_MODIFIED,
       changeFrequency: 'monthly',
       priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/contact`,
-      lastModified: LAST_MODIFIED,
-      changeFrequency: 'yearly',
-      priority: 0.5,
     },
   ];
 }

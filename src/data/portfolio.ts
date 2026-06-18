@@ -1,5 +1,6 @@
-export const majorProjects = [
-  {
+export const Projects = [
+  {"Major": [
+    {
     id: 1,
     name: "Portfolio Terminal",
     description: "My current, Interactive terminal-style portfolio with command system",
@@ -21,56 +22,6 @@ export const majorProjects = [
   },
   {
     id: 3,
-    name: "Bali (Web based game)",
-    description: "For one of my graded projects at school, We were tasked with making an old-school game, We went for a couch-coop type of game, like a minigame from mario party. The name is based off of an inside joke from our group. I helped set up the abilities system I got a 7/10 for this project",
-    tech: ["Three.js", "Websockets"],
-    link: "https://github.com/maciejphp/game",
-    webapp: "",
-    status: "Offline",
-    image: "/images/Portfolio1.png"
-  },
-  {
-    id: 4,
-    name: "Woordle (Wordle Clone)",
-    description: "another school project, We were tasked with making our own version/clone of either a typing test or wordle. my group decided on wordle, I made the API, aswell as the entire admin panel and leaderboard system. I got an 8/10 for this project",
-    tech: ["JavaScript", "PHP", "Vanilla"],
-    link: "",
-    webapp: "",
-    status: "Offline, never published",
-    image: "/images/Portfolio1.png"
-  },
-  {
-    id: 5,
-    name: "ClassProject",
-    description: "This is my first project from school that I uploaded to GitHub, We were tasked with making a digitalised student list, I made the list with Svelte, This was my first time using Svelte with Typescript. and i made an API in PHP. I got a 8/10 for this project",
-    tech: ["Svelte", "TypeScript", "PHP"],
-    link: "https://github.com/Dylan-Ven/ClassProject",
-    webapp: "",
-    status: "Offline",
-    image: "/images/Portfolio1.png"
-  },
-  {
-    id: 6,
-    name: "Proftaak P3 (Project Year 3, Q3)",
-    description: "In the third year, we had a project where we had to fill in an exam form, preparing me for my final internship. I made an app that would use an arduino to measure the sound volume of the room, and put that data on a graph, it updated every minute by the average sound level. I got a 6,4 (I forgot some documentation)",
-    tech: ["C++", "Arduino IDE", "Graph.js", "Express.js"],
-    link: "",
-    webapp: "",
-    status: "Private, Never published",
-    image: "/images/Portfolio1.png"
-  },
-  {
-    id: 7,
-    name: "Proftaak P4 (Project Year 3, Q4)",
-    description: "We were tasked with the same thing as in Q3, This time I found some public NASA APIs that had data about exoplanets, I made a website that would display that data in a user-friendly 3D way, I had some checks based on size and rotation speed, I got a 9.3/10 for this project",
-    tech: ["Three.js", "JavaScript", "NASA APIs"],
-    link: "https://github.com/Yonder-ICT-Mediatechnologie/proftaak-p4-dylan",
-    webapp: "",
-    status: "Offline, Never published",
-    image: "/images/Portfolio1.png"
-  },
-  {
-    id: 8,
     name: "TrackId.Studio",
     description: "This project, I worked on making a music-recognition application, where i continued building on something that was already realised.",
     tech: ["React", "TypeScript", "Kotlin", "Swift", "Flutter (Dart)"],
@@ -78,52 +29,9 @@ export const majorProjects = [
     webapp: "#",
     status: "Not Published Yet, ETA: Q2 2026",
     image: "/images/Portfolio1.png"
-  }
-];
-
-export const minorProjects = [
-  {
-    id: 1,
-    name: "Challenge game",
-    description: "At school, we were challenged to design a game in a week. the theme was 'Food Waste'. me and my team created a memory game where you had to match food items",
-    tech: ["HTML", "Bootstrap", "Javascript", "Sweetalert2"],
-    link: "https://github.com/Dylan-Ven/Challenge-Game",
-    webapp: "https://challenge-game.vercel.app/",
-    status: "Online",
-    image: "/images/Portfolio1.png"
-  },
-  {
-    id: 2,
-    name: "Medisch Leerfonds (Junior Hackathon 2023)",
-    description: "Back in the second year, I along with a couple of my classmates participated in a junior hackathon. We had created a platform that was supposed to help medical students find funding for their studies, we won the public choice award!",
-    tech: ["SvelteKit", "JavaScript", "CSS", "Firebase"],
-    link: "https://github.com/Dylan-Ven/Medisch-leerfonds", 
-    webapp: "https://medischleerfonds.vercel.app/",
-    status: "Online",
-    image: "/images/Portfolio1.png"
-  },
-  {
-    id: 3,
-    name: "Gametime Bot",
-    description: "I am working on a discord bot that tracks how much time you have spent in certain games,",
-    tech: ["MongoDB", "Discord.js", "Express.js"],
-    link: "",
-    webapp: "",
-    status: "Private, In Development",
-    image: "/images/Portfolio1.png"
   },
   {
     id: 4,
-    name: "Natte Kerstzak (Discord Bot)",
-    description: "A friend asked if i could make a bot for his discord server, the bot plays music in voice channels. I don't plan on releasing this bot publicly",
-    tech: ["Discord.js", "cookies", "FFMPEG"],
-    link: "",
-    webapp: "",
-    status: "Temporarily stopped development, December 2025",
-    image: "/images/Portfolio1.png"
-  },
-  {
-    id: 5,
     name: "Zeeslag (Digitalised Boardgame)",
     description: "I liked playing the boardgame battleship, So i decided to make a digital version of it by myself, using vanilla javascript, html and css. its supposed to be a Multiplayer game",
     tech: ["HTML", "CSS", "JavaScript"],
@@ -132,20 +40,127 @@ export const minorProjects = [
     status: "Offline, In Development",
     image: "/images/Portfolio1.png"
   },
-  {
-    id: 6,
-    name: "Just Another RTS",
-    description: "I wanted a strategy game, with ideas from different RTS games, so i started making one.",
-    tech: ["HTML", "CSS", "JavaScript"],
+  ]},
+  {"Minor": [
+    {
+      id: 1,
+      name: "Gametime Bot",
+      description: "I am working on a discord bot that tracks how much time you have spent in certain games,",
+      tech: ["MongoDB", "Discord.js", "Express.js"],
+      link: "",
+      webapp: "",
+      status: "Private, In Development",
+      image: "/images/Portfolio1.png"
+    },
+    {
+    id: 2,
+    name: "Natte Kerstzak (Discord Bot)",
+    description: "A friend asked if i could make a bot for his discord server, the bot plays music in voice channels. I don't plan on releasing this bot publicly",
+    tech: ["Discord.js", "cookies", "FFMPEG"],
     link: "",
     webapp: "",
-    status: "In early early development",
+    status: "Temporarily stopped development, December 2025",
     image: "/images/Portfolio1.png"
-  }
-];
+  },
+  ]},
+  {"Schoolwork": [
+    {"Year 1": [
+      {
+        id: 1,
+        name: "ClassProject",
+        description: "This is my first project from school that I uploaded to GitHub, We were tasked with making a digitalised student list, I made the list with Svelte, This was my first time using Svelte with Typescript. and i made an API in PHP. I got a 8/10 for this project",
+        tech: ["Svelte", "TypeScript", "PHP"],
+        link: "https://github.com/Dylan-Ven/ClassProject",
+        webapp: "",
+        status: "Offline",
+        image: "/images/Portfolio1.png"
+      },
+    ]},
+    {"Year 2": [
+      {
+        id: 1,
+        name: "Medisch Leerfonds (Junior Hackathon 2023)",
+        description: "Back in the second year, I along with a couple of my classmates participated in a junior hackathon. We had created a platform that was supposed to help medical students find funding for their studies, we won the public choice award!",
+        tech: ["SvelteKit", "JavaScript", "CSS", "Firebase"],
+        link: "https://github.com/Dylan-Ven/Medisch-leerfonds", 
+        webapp: "https://medischleerfonds.vercel.app/",
+        status: "Online",
+        image: "/images/Portfolio1.png"
+      },
+      {
+        id: 2,
+        name: "Bali (Web based game)",
+        description: "For one of my graded projects at school, We were tasked with making an old-school game, We went for a couch-coop type of game, like a minigame from mario party. The name is based off of an inside joke from our group. I helped set up the abilities system I got a 7/10 for this project",
+        tech: ["Three.js", "Websockets"],
+        link: "https://github.com/maciejphp/game",
+        webapp: "",
+        status: "Offline",
+        image: "/images/Portfolio1.png"
+      },
+    ]},
+    {"Year 3": [
+      {
+        id: 1,
+        name: "Challenge game",
+        description: "At school, we were challenged to design a game in a week. the theme was 'Food Waste'. me and my team created a memory game where you had to match food items",
+        tech: ["HTML", "Bootstrap", "Javascript", "Sweetalert2"],
+        link: "https://github.com/Dylan-Ven/Challenge-Game",
+        webapp: "https://challenge-game.vercel.app/",
+        status: "Online",
+        image: "/images/Portfolio1.png"
+      },
+      {
+        id: 2,
+        name: "Proftaak P3 (Project Year 3, Q3)",
+        description: "In the third year, we had a project where we had to fill in an exam form, preparing me for my final internship. I made an app that would use an arduino to measure the sound volume of the room, and put that data on a graph, it updated every minute by the average sound level. I got a 6,4 (I forgot some documentation)",
+        tech: ["C++", "Arduino IDE", "Graph.js", "Express.js"],
+        link: "",
+        webapp: "",
+        status: "Private, Never published",
+        image: "/images/Portfolio1.png"
+      },
+      {
+        id: 3,
+        name: "Proftaak P4 (Project Year 3, Q4)",
+        description: "We were tasked with the same thing as in Q3, This time I found some public NASA APIs that had data about exoplanets, I made a website that would display that data in a user-friendly 3D way, I had some checks based on size and rotation speed, I got a 9.3/10 for this project",
+        tech: ["Three.js", "JavaScript", "NASA APIs"],
+        link: "https://github.com/Yonder-ICT-Mediatechnologie/proftaak-p4-dylan",
+        webapp: "",
+        status: "Offline, Never published",
+        image: "/images/Portfolio1.png"
+      },
+    ]}
+  ]}
+]
 
-// Keep old export for backwards compatibility
-export const projectsData = [...majorProjects, ...minorProjects];
+export interface PortfolioProject {
+  id: number;
+  name: string;
+  description: string;
+  tech: string[];
+  link: string;
+  webapp: string;
+  status: string;
+  image: string;
+}
+
+const majorGroup = Projects.find((group) => 'Major' in group) as { Major?: PortfolioProject[] } | undefined;
+const minorGroup = Projects.find((group) => 'Minor' in group) as { Minor?: PortfolioProject[] } | undefined;
+const schoolworkGroup = Projects.find((group) => 'Schoolwork' in group) as
+  | { Schoolwork?: Array<Record<string, PortfolioProject[]>> }
+  | undefined;
+
+export const majorProjects: PortfolioProject[] = majorGroup?.Major ?? [];
+export const minorProjects: PortfolioProject[] = minorGroup?.Minor ?? [];
+export const schoolworkProjects: PortfolioProject[] = (schoolworkGroup?.Schoolwork ?? []).flatMap(
+  (yearGroup) => Object.values(yearGroup).flat(),
+);
+
+export const projectsData: PortfolioProject[] = [
+  ...majorProjects,
+  ...minorProjects,
+  ...schoolworkProjects,
+];
 
 export const skillsData = {
   languages: [

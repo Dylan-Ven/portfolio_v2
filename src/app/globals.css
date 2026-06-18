@@ -1,3 +1,14 @@
+@import "tailwindcss";
+
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  animation: ticker 30s linear infinite;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -207,33 +218,14 @@ html, body {
 }
 
 body {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  background: var(--terminal-bg);
-  color: var(--terminal-white);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: radial-gradient(circle at top right, #1e293b 0%, #0b1220 45%, #050814 100%);
+  color: #e2e8f0;
   overflow-x: hidden;
   line-height: 1.5;
   font-size: 16px;
   letter-spacing: 0;
-}
-
-/* Subtle background pattern */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: 
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(255, 255, 255, 0.01) 2px,
-      rgba(255, 255, 255, 0.01) 4px
-    );
-  pointer-events: none;
-  z-index: -1;
+  min-height: 100vh;
 }
 
 /* Custom Scrollbar */
@@ -268,7 +260,7 @@ a {
 }
 
 a:hover {
-  color: var(--terminal-white);
+  color: #ffffff;
   text-decoration: underline;
 }
 
