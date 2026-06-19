@@ -274,38 +274,8 @@ a:hover {
   animation: blink 1s infinite;
 }
 
-/* Button Styles */
-button {
-  border: 1px solid var(--terminal-border);
-  background: var(--terminal-bg-light);
-  color: var(--terminal-white);
-  padding: 0.5em 1em;
-  font-size: 0.95em;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
-  border-radius: 3px;
-}
 
-button:hover {
-  background: var(--terminal-border);
-  border-color: var(--terminal-gray);
-}
 
-button:focus,
-button:focus-visible {
-  outline: 2px solid var(--terminal-accent);
-  outline-offset: 2px;
-}
-
-/* Focus States */
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--terminal-accent);
-  outline-offset: 2px;
-}
 
 /* CRT Screen Effect - Applied only to terminal */
 @keyframes flicker {

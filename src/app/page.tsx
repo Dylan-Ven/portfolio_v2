@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { ProjectsViewer } from '@/components/ProjectsViewer';
- 
+import { SkillViewer } from '@/components/SkillViewer'; 
+import { AboutViewer } from '@/components/AboutViewer';
+import { ContactViewer } from '@/components/ContactViewer';
 
 export const metadata: Metadata = {
   title: 'Portfolio',
@@ -19,29 +21,10 @@ export default function HomePage() {
         <p>I am <span className='hover:text-orange-300 duration-300'>20 years old</span> and I currently study <span className='hover:text-orange-300 duration-300'>Software Development</span></p>
       </div>
       <ProjectsViewer />
-      <div className='w-10/12'>
-        <div className='flex flex-row justify-evenly gap-5 '>
-          <div className='w-2/3'>
-            <h1></h1>
-            <p>
-              I'm a passionate fullstack developer and designer with a love for creating immersive digital experiences. I specialize in building modern web applications with cutting-edge technologies and creative visual effects.
+      <AboutViewer />
+      <SkillViewer />
+      <ContactViewer />
 
-              From pixel-perfect UI designs to complex backend systems, I bridge the gap between design and development. I'm particularly interested in backend systems, problem solving and creating unique, engaging and interactive user experiences.
-            </p>
-          </div>
-          <div className='w-1/3'>
-            <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Aliquid esse nihil consequatur voluptates? Expedita voluptatem hic a est consequatur, distinctio consequuntur vero quibusdam odit, necessitatibus cupiditate culpa magni velit tempore!</p>
-            <img src="#" alt="" />
-            <div /* Lanyard Status */></div>
-          </div>
-        </div>
-        <div /* skills */>
-          <h1>Skills</h1>
-        </div>
-      </div>
-      <div /* Contact */>
-        
-      </div>
     </main>
   );
 }
